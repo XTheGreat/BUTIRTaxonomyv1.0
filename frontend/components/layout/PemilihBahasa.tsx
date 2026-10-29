@@ -1,6 +1,7 @@
 "use client";
 
 import { useBahasa, useTeks, type Bahasa } from "@/lib/teks";
+import { ChevronDown } from "lucide-react";
 
 interface PemilihBahasaProps {
   className?: string;
@@ -10,41 +11,34 @@ export default function PemilihBahasa({ className = "" }: PemilihBahasaProps) {
   const t = useTeks().shell.pemilihBahasa;
   const { bahasa, setBahasa } = useBahasa();
 
-  const pilihan: { kode: Bahasa; singkat: string; nama: string }[] = [
-    { kode: "id", singkat: t.idSingkat, nama: t.idNama },
-    { kode: "en", singkat: t.enSingkat, nama: t.enNama },
-    { kode: "zh", singkat: t.zhSingkat, nama: t.zhNama },
+  const pilihan: { kode: Bahasa; nama: string }[] = [
+    { kode: "id", nama: "Bahasa Indonesia" },
+    { kode: "en", nama: "English" },
+    { kode: "zh", nama: "中文" },
   ];
 
   return (
-    <div role="radiogroup" aria-label={t.label} className={`inline-flex gap-1 ${className}`}>
-      {pilihan.map(({ kode, singkat, nama }) => {
-        const terpilih = bahasa === kode;
-        return (
-          <button
-            key={kode}
-            type="button"
-            role="radio"
-            aria-checked={terpilih}
-            aria-label={nama}
-            title={nama}
-            onClick={() => setBahasa(kode)}
-            className={`flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-[11px] transition-colors duration-[140ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-text)] ${
-              terpilih
-                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink)]"
-                : "border-[var(--line-strong)] bg-[var(--canvas)] text-[var(--ink-muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                terpilih ? "bg-[var(--accent)]" : "border border-[var(--line-strong)]"
-              }`}
-            />
-            {singkat}
-          </button>
-        );
-      })}
+    <div className={`inline-flex ${className}`}>
+      <div className="relative inline-flex">
+        <select
+          aria-label={t.label}
+          value={bahasa}
+          onChange={(event) => setBahasa(event.target.value as Bahasa)}
+          className="w-40 appearance-none rounded border border-[var(--line-strong)] bg-[var(--canvas)] py-2 pl-3 pr-9 font-sans text-xs text-[var(--ink)] transition-colors duration-[140ms] hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-text)]"
+        >
+          {pilihan.map(({ kode, nama }) => (
+            <option key={kode} value={kode}>
+              {nama}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          aria-hidden="true"
+          size={14}
+          strokeWidth={1.75}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]"
+        />
+      </div>
     </div>
   );
 }

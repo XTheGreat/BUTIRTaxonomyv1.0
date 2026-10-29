@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
+import { Eye, EyeOff } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { saveToken, saveUser } from "@/lib/auth";
 import Button from "@/components/ui/Button";
@@ -25,6 +26,7 @@ export default function MasukGuru({ emailRef }: { emailRef: React.RefObject<HTML
   const [langkah, setLangkah] = useState<Langkah>("sandi");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [tampilkanPassword, setTampilkanPassword] = useState(false);
   const [kode, setKode] = useState("");
   const [galat, setGalat] = useState("");
   const [info, setInfo] = useState("");
@@ -156,12 +158,29 @@ export default function MasukGuru({ emailRef }: { emailRef: React.RefObject<HTML
         />
         <Input
           label={m.kataSandi}
-          type="password"
+          type={tampilkanPassword ? "text" : "password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
           autoComplete="current-password"
           required
+          endAdornment={
+            <button
+              type="button"
+              aria-label={tampilkanPassword ? m.sembunyikanKataSandi : m.tampilkanKataSandi}
+              aria-pressed={tampilkanPassword}
+              title={tampilkanPassword ? m.sembunyikanKataSandi : m.tampilkanKataSandi}
+              onClick={() => setTampilkanPassword((terlihat) => !terlihat)}
+              onMouseDown={(event) => event.preventDefault()}
+              className="rounded p-1 text-[var(--ink-muted)] transition-colors duration-[140ms] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-text)]"
+            >
+              {tampilkanPassword ? (
+                <EyeOff aria-hidden="true" size={16} strokeWidth={1.75} />
+              ) : (
+                <Eye aria-hidden="true" size={16} strokeWidth={1.75} />
+              )}
+            </button>
+          }
         />
         {kotakGalat}
         <Button type="submit" disabled={sibuk} className="w-full">

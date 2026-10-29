@@ -363,6 +363,22 @@ h1, h2, h3, h4, h5, h6 {
   animation: grafik-segmen-masuk 420ms ease-out both;
 }
 
+@keyframes grafik-piramida-tingkat-masuk {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.diagram-pyramid-tier-reveal {
+  animation: grafik-piramida-tingkat-masuk 520ms ease-out both;
+}
+
+@keyframes grafik-caption-piramida-masuk {
+  from { clip-path: inset(0 100% 0 0); opacity: 0.45; }
+  to { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+.diagram-pyramid-caption-reveal {
+  animation: grafik-caption-piramida-masuk 650ms ease-out both;
+}
+
 @keyframes grafik-corong-masuk {
   from { transform: scaleY(0.18); opacity: 0.35; }
   to { transform: scaleY(1); opacity: 1; }

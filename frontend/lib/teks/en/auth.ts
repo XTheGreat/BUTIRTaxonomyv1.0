@@ -48,6 +48,8 @@ const auth: typeof id = {
     email: "Email",
     emailContoh: "name@university.edu",
     kataSandi: "Password",
+    tampilkanKataSandi: "Show password",
+    sembunyikanKataSandi: "Hide password",
     memverifikasi: "Verifying...",
     masuk: "Sign in",
     masukDenganKode: "Sign in with an email code",

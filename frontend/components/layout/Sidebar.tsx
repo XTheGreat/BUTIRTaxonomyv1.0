@@ -32,9 +32,24 @@ type KunciMenu = keyof Kamus["shell"]["sidebar"]["menu"];
 type KunciGrup = keyof Kamus["shell"]["sidebar"]["grup"];
 
 const KUNCI_LEBAR_SIDEBAR = "butir_lebar_sidebar";
+const KUNCI_GRUP_SIDEBAR = "butir_grup_sidebar";
 const LEBAR_SIDEBAR_BAWAAN = 240;
 const LEBAR_SIDEBAR_MIN = 200;
 const LEBAR_SIDEBAR_MAKS = 400;
+const KUNCI_GRUP: KunciGrup[] = ["persiapan", "telaah", "ujian", "sistem", "arsip"];
+
+function bacaGrupSidebar(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const tersimpan = JSON.parse(localStorage.getItem(KUNCI_GRUP_SIDEBAR) || "{}");
+    if (!tersimpan || typeof tersimpan !== "object" || Array.isArray(tersimpan)) return {};
+    return Object.fromEntries(
+      KUNCI_GRUP.filter((kunci) => typeof tersimpan[kunci] === "boolean").map((kunci) => [kunci, tersimpan[kunci]]),
+    );
+  } catch {
+    return {};
+  }
+}
 
 function batasiLebarSidebar(lebar: number) {
   return Math.max(LEBAR_SIDEBAR_MIN, Math.min(LEBAR_SIDEBAR_MAKS, lebar));
@@ -112,7 +127,7 @@ export default function Sidebar({
   const t = useTeks();
   const [markedCount, setMarkedCount] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
-  const [terbuka, setTerbuka] = useState<Record<string, boolean>>({});
+  const [terbuka, setTerbuka] = useState<Record<string, boolean>>(bacaGrupSidebar);
   const [lebarSidebar, setLebarSidebar] = useState(LEBAR_SIDEBAR_BAWAAN);
   const [sedangUbahLebar, setSedangUbahLebar] = useState(false);
   const lebarRef = useRef(LEBAR_SIDEBAR_BAWAAN);
@@ -178,8 +193,21 @@ export default function Sidebar({
   )?.group;
 
   useEffect(() => {
-    if (grupAktif) setTerbuka((prev) => (prev[grupAktif] ? prev : { ...prev, [grupAktif]: true }));
-  }, [grupAktif]);
+    if (!grupAktif || Object.prototype.hasOwnProperty.call(terbuka, grupAktif)) return;
+    const berikutnya = { ...terbuka, [grupAktif]: true };
+    setTerbuka(berikutnya);
+    try {
+      localStorage.setItem(KUNCI_GRUP_SIDEBAR, JSON.stringify(berikutnya));
+    } catch {}
+  }, [grupAktif, terbuka]);
+
+  function toggleGrupSidebar(grup: KunciGrup) {
+    const berikutnya = { ...terbuka, [grup]: !terbuka[grup] };
+    setTerbuka(berikutnya);
+    try {
+      localStorage.setItem(KUNCI_GRUP_SIDEBAR, JSON.stringify(berikutnya));
+    } catch {}
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -239,7 +267,7 @@ export default function Sidebar({
               {group.group && (
                 <button
                   type="button"
-                  onClick={() => setTerbuka((prev) => ({ ...prev, [group.group!]: !prev[group.group!] }))}
+                  onClick={() => toggleGrupSidebar(group.group!)}
                   aria-expanded={!!terbuka[group.group]}
                   className="flex w-full items-center justify-between rounded px-3 pb-1.5 pt-0.5 font-sans text-xs font-bold text-[var(--ink-muted)] transition-colors duration-[140ms] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-text)]"
                 >

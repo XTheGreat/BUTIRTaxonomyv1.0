@@ -10,6 +10,7 @@ export const STATUS_HISTORY: { key: string; label: string; warna: string; penand
 ];
 
 const MAX_RONDE = 3;
+const DURASI_ANIMASI_SEGMENT = 360;
 
 export function warnaStatus(status: string): string {
   return STATUS_HISTORY.find((s) => s.key === status)?.warna ?? "var(--status-netral)";
@@ -71,6 +72,13 @@ export function RingkasanStatus({
   ukuranTeks?: string;
 }) {
   const t = useTeks().telaah;
+  const segmenAktif = total > 0
+    ? STATUS_HISTORY.flatMap((status) => {
+        const jumlah = hitung[status.key] ?? 0;
+        return jumlah > 0 ? [{ status, jumlah }] : [];
+      })
+    : [];
+
   return (
     <div className="space-y-1.5">
       <div
@@ -78,17 +86,18 @@ export function RingkasanStatus({
         role="img"
         aria-label={STATUS_HISTORY.map((s) => `${hitung[s.key] ?? 0} ${t.status[s.key as keyof typeof t.status] ?? s.label}`).join(", ")}
       >
-        {STATUS_HISTORY.map((s, index) => {
-          const n = hitung[s.key] ?? 0;
-          if (n === 0 || total === 0) return null;
-          return (
-            <span
-              key={s.key}
-              style={{ flexGrow: n, backgroundColor: s.penanda, animationDelay: `${index * 55}ms` }}
-              className="diagram-animasi diagram-segment-reveal h-full"
-            />
-          );
-        })}
+        {segmenAktif.map(({ status, jumlah }, index) => (
+          <span
+            key={`${status.key}-${jumlah}`}
+            style={{
+              flexGrow: jumlah,
+              backgroundColor: status.penanda,
+              animationDelay: `${index * DURASI_ANIMASI_SEGMENT}ms`,
+              animationDuration: `${DURASI_ANIMASI_SEGMENT}ms`,
+            }}
+            className="diagram-animasi diagram-segment-reveal h-full"
+          />
+        ))}
       </div>
       <ul className={`flex flex-wrap gap-x-3 gap-y-0.5 font-sans ${ukuranTeks}`}>
         {STATUS_HISTORY.map((s) => (

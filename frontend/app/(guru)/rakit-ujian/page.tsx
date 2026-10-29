@@ -10,7 +10,6 @@ import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import BloomText from "@/components/ui/BloomText";
-import BatangBloom from "@/components/ui/BatangBloom";
 import FilterButir, { FILTER_AWAL, filterAktif, NilaiFilterButir } from "@/components/ui/FilterButir";
 import { BLOOM_COLORS, type BloomLevel } from "@/components/ui/BloomPieChart";
 import BloomChip from "@/components/ui/BloomChip";
@@ -21,7 +20,16 @@ import MathText from "@/components/ui/MathText";
 import { useTeks } from "@/lib/teks";
 import { susunNomorHalaman } from "@/lib/pagination";
 
-const BLOOM_LEVELS = ["C1", "C2", "C3", "C4", "C5", "C6"];
+const BLOOM_LEVELS: BloomLevel[] = ["C1", "C2", "C3", "C4", "C5", "C6"];
+const BLOOM_LEVELS_PIRAMIDA = [...BLOOM_LEVELS].reverse();
+const KELAS_GESER_BARIS_PIRAMIDA = [
+  "@2xl:relative @2xl:left-[-125px] @2xl:w-[calc(100%_+_125px)]",
+  "@2xl:relative @2xl:left-[-100px] @2xl:w-[calc(100%_+_100px)]",
+  "@2xl:relative @2xl:left-[-75px] @2xl:w-[calc(100%_+_75px)]",
+  "@2xl:relative @2xl:left-[-50px] @2xl:w-[calc(100%_+_50px)]",
+  "@2xl:relative @2xl:left-[-25px] @2xl:w-[calc(100%_+_25px)]",
+  "@2xl:relative @2xl:left-0 @2xl:w-full",
+];
 const KISI_KISI_PER_HALAMAN = 11;
 const ARSIP_PER_HALAMAN = 7;
 
@@ -38,7 +46,8 @@ interface RakitInfo {
 }
 
 export default function RakitUjianPage() {
-  const t = useTeks().ujian;
+  const teks = useTeks();
+  const t = teks.ujian;
   const router = useRouter();
   const [butirList, setButirList] = useState<ButirSoal[]>([]);
   const [kelompokList, setKelompokList] = useState<KelompokBank[]>([]);
@@ -50,6 +59,11 @@ export default function RakitUjianPage() {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [jumlahTarget, setJumlahTarget] = useState(10);
   const [bloom, setBloom] = useState<Record<string, number>>(() => bacaPreferensi().distribusiBloom);
+  const [bloomDiHover, setBloomDiHover] = useState<BloomLevel | null>(null);
+  const [posisiTooltipBloom, setPosisiTooltipBloom] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [cakupanPaket, setCakupanPaket] = useState("");
   const [targetBobot, setTargetBobot] = useState("");
   const [rakitInfo, setRakitInfo] = useState<RakitInfo | null>(null);
@@ -116,6 +130,25 @@ export default function RakitUjianPage() {
   const halamanArsipAktif = Math.min(halamanArsip, jumlahHalamanArsip);
   const indeksAwalArsip = (halamanArsipAktif - 1) * ARSIP_PER_HALAMAN;
   const arsipTerlihat = arsipTampil.slice(indeksAwalArsip, indeksAwalArsip + ARSIP_PER_HALAMAN);
+
+  function tampilkanTooltipBloom(level: BloomLevel, xClient: number, yClient: number) {
+    const lebarTooltip = Math.min(224, window.innerWidth - 32);
+    const tinggiTooltip = 128;
+    const xKanan = xClient + lebarTooltip + 16 <= window.innerWidth - 8;
+    const xUsulan = xKanan ? xClient + 12 : xClient - lebarTooltip - 12;
+    const yBawah = yClient + tinggiTooltip + 16 <= window.innerHeight - 8;
+    const yUsulan = yBawah ? yClient + 12 : yClient - tinggiTooltip - 12;
+    setBloomDiHover(level);
+    setPosisiTooltipBloom({
+      x: Math.max(16, Math.min(xUsulan, window.innerWidth - lebarTooltip - 16)),
+      y: Math.max(12, Math.min(yUsulan, window.innerHeight - tinggiTooltip - 12)),
+    });
+  }
+
+  function sembunyikanTooltipBloom() {
+    setBloomDiHover(null);
+    setPosisiTooltipBloom(null);
+  }
 
   function ubahHalaman(berikut: number) {
     setHalamanBank((halaman) => sumber === "bank" ? berikut : halaman);
@@ -344,7 +377,7 @@ export default function RakitUjianPage() {
               />
             </div>
 
-            <div>
+            <div className="@container">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="text-sm font-medium text-[var(--ink)]">
                   {t.rakit.otomatis.distribusiBloom}
@@ -367,40 +400,176 @@ export default function RakitUjianPage() {
                   </span>
                 </div>
               </div>
-              <div className="mb-3">
-                <BatangBloom bloom={bloom} />
+              <div className="grid items-center gap-5 @2xl:grid-cols-[320px_minmax(0,1fr)]">
+                <figure className="relative flex justify-center" aria-label={t.rakit.otomatis.judulPiramida}>
+                  <svg
+                    viewBox="0 0 320 216"
+                    preserveAspectRatio="none"
+                    className="h-auto w-full max-w-[260px] @2xl:h-[216px] @2xl:max-w-[320px]"
+                    role="group"
+                    aria-label={t.rakit.otomatis.judulPiramida}
+                    onPointerMove={(event) => {
+                      const batas = event.currentTarget.getBoundingClientRect();
+                      const x = ((event.clientX - batas.left) / batas.width) * 320;
+                      const y = ((event.clientY - batas.top) / batas.height) * 216;
+                      if (y < 0 || y > 216) {
+                        sembunyikanTooltipBloom();
+                        return;
+                      }
+                      const posisiY = Math.min(y, 215.99);
+                      const lebarRelatif = posisiY / 216;
+                      const tepiKiri = 160 - 150 * lebarRelatif;
+                      const tepiKanan = 160 + 150 * lebarRelatif;
+                      if (x < tepiKiri || x > tepiKanan) {
+                        sembunyikanTooltipBloom();
+                        return;
+                      }
+                      const indeksTingkat = Math.min(
+                        BLOOM_LEVELS_PIRAMIDA.length - 1,
+                        Math.floor(posisiY / 36),
+                      );
+                      tampilkanTooltipBloom(BLOOM_LEVELS_PIRAMIDA[indeksTingkat], event.clientX, event.clientY);
+                    }}
+                    onPointerLeave={sembunyikanTooltipBloom}
+                  >
+                    <title>{t.rakit.otomatis.judulPiramida}</title>
+                    {BLOOM_LEVELS_PIRAMIDA.map((lv, index) => {
+                      const lebarTingkat = 300 / BLOOM_LEVELS_PIRAMIDA.length;
+                      const topWidth = index * lebarTingkat;
+                      const bottomWidth = (index + 1) * lebarTingkat;
+                      const topY = index * 36;
+                      const bottomY = topY + 36;
+                      const points = [
+                        `${160 - topWidth / 2},${topY}`,
+                        `${160 + topWidth / 2},${topY}`,
+                        `${160 + bottomWidth / 2},${bottomY}`,
+                        `${160 - bottomWidth / 2},${bottomY}`,
+                      ].join(" ");
+                      return (
+                        <g key={lv}>
+                          <polygon
+                            points={points}
+                            fill={BLOOM_COLORS[lv]}
+                            stroke="var(--canvas)"
+                            strokeWidth="1.5"
+                            tabIndex={0}
+                            role="img"
+                            aria-label={`${teks.komponen.bloom.tingkat[lv]} ${lv}, ${t.rakit.otomatis.tersedia(tersedia[lv] ?? 0)}. ${t.rakit.otomatis.keteranganLevel[lv]}`}
+                            aria-describedby={bloomDiHover === lv ? "piramida-bloom-tooltip" : undefined}
+                            onFocus={(event) => {
+                              const svg = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                              if (svg) {
+                                tampilkanTooltipBloom(
+                                  lv,
+                                  svg.left + svg.width / 2,
+                                  svg.top + ((topY + bottomY) / 2 / 216) * svg.height,
+                                );
+                              }
+                            }}
+                            onBlur={sembunyikanTooltipBloom}
+                            className="diagram-animasi diagram-pyramid-tier-reveal cursor-help transition-opacity duration-140 hover:opacity-80 focus:opacity-80 focus:outline-none"
+                            style={{ animationDelay: `${index * 85}ms` }}
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  {bloomDiHover && posisiTooltipBloom && (
+                    <div
+                      id="piramida-bloom-tooltip"
+                      role="tooltip"
+                      className="diagram-animasi diagram-tooltip-reveal pointer-events-none fixed z-50 w-56 max-w-[calc(100vw_-_2rem)] border border-[var(--line-strong)] bg-[var(--canvas)] px-2.5 py-2 text-xs text-[var(--ink)]"
+                      style={{
+                        left: posisiTooltipBloom.x,
+                        top: posisiTooltipBloom.y,
+                        boxShadow: "var(--shadow-overlay)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 font-serif text-sm">
+                        <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: BLOOM_COLORS[bloomDiHover] }} />
+                        <span>{teks.komponen.bloom.tingkat[bloomDiHover]}</span>
+                        <span className="font-mono text-[10px] text-[var(--accent-text)]">{bloomDiHover}</span>
+                      </div>
+                      <div className="mt-1.5 font-mono text-[10px] text-[var(--ink-muted)]">
+                        {t.rakit.otomatis.tersedia(tersedia[bloomDiHover] ?? 0)}
+                      </div>
+                      <p className="mt-1 leading-relaxed text-[var(--ink-muted)]">
+                        {t.rakit.otomatis.keteranganLevel[bloomDiHover]}
+                      </p>
+                    </div>
+                  )}
+                </figure>
+
+                <div>
+                  {BLOOM_LEVELS_PIRAMIDA.map((lv, index) => (
+                    <div
+                      key={lv}
+                      style={{
+                        backgroundColor: `color-mix(in srgb, ${BLOOM_COLORS[lv]} 24%, var(--surface))`,
+                        animationDelay: `${index * 85}ms`,
+                      }}
+                      className={`diagram-animasi diagram-pyramid-caption-reveal flex h-9 w-full items-center border-b border-[var(--line)] px-2 ${index === 0 ? "border-t" : ""} ${KELAS_GESER_BARIS_PIRAMIDA[index]}`}
+                    >
+                      <div className="flex w-full min-w-0 items-center gap-2">
+                        <span className="shrink-0 whitespace-nowrap font-sans text-xs font-medium text-[var(--ink)]">
+                          {teks.komponen.bloom.tingkat[lv]}
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] text-[var(--accent-text)]">{lv}</span>
+                        <span
+                          title={t.rakit.otomatis.keteranganLevel[lv]}
+                          className="min-w-0 truncate text-[11px] text-[var(--ink-muted)]"
+                        >
+                          {t.rakit.otomatis.keteranganLevel[lv]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[var(--line)] pt-3 sm:grid-cols-3 @2xl:grid-cols-6">
                 {BLOOM_LEVELS.map((lv) => (
-                  <label key={lv} className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5">
+                  <label key={lv} className="flex min-w-0 flex-col gap-1.5">
+                    <span className="flex min-w-0 items-center gap-1.5">
                       <span
                         aria-hidden="true"
                         className="h-2.5 w-2.5 shrink-0"
-                        style={{ backgroundColor: BLOOM_COLORS[lv as BloomLevel] }}
+                        style={{ backgroundColor: BLOOM_COLORS[lv] }}
                       />
-                      <span className="font-mono text-xs font-semibold text-[var(--accent-text)]">{lv}</span>
-                      <span
-                        title={t.rakit.otomatis.tersedia(tersedia[lv] ?? 0)}
-                        className="min-w-[22px] border border-[var(--line-strong)] rounded bg-[var(--canvas)] px-1.5 text-center font-mono text-[11px] leading-[18px] tabular-nums text-[var(--ink)]"
-                      >
-                        {tersedia[lv] ?? 0}
+                      <span className="shrink-0 font-mono text-[10px] font-semibold text-[var(--accent-text)]">
+                        {lv}
                       </span>
-                      <span className="font-mono text-[11px] text-[var(--ink-muted)]">{t.rakit.otomatis.butir}</span>
+                      <span className="truncate text-xs text-[var(--ink)]">
+                        {teks.komponen.bloom.tingkat[lv]}
+                      </span>
+                      <span className="ml-auto flex shrink-0 items-center gap-1">
+                        <span
+                          title={t.rakit.otomatis.tersedia(tersedia[lv] ?? 0)}
+                          className="min-w-[22px] border border-[var(--line-strong)] bg-[var(--canvas)] px-1 text-center font-mono text-[9px] leading-[16px] tabular-nums text-[var(--ink)]"
+                        >
+                          {tersedia[lv] ?? 0}
+                        </span>
+                        <span className="font-mono text-[9px] text-[var(--ink-muted)]">
+                          {t.rakit.otomatis.butir}
+                        </span>
+                      </span>
                     </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={bloom[lv]}
-                      onChange={(e) =>
-                        setBloom((prev) => ({
-                          ...prev,
-                          [lv]: Math.max(0, parseInt(e.target.value) || 0),
-                        }))
-                      }
-                      className="bg-[var(--canvas)] text-[var(--ink)] border border-[var(--line-strong)] rounded px-2 py-1.5 text-sm font-mono tabular-nums focus:outline-none focus:border-[var(--accent-text)]"
-                    />
+                    <span className="flex h-8 items-center border border-[var(--line-strong)] bg-[var(--canvas)] px-2 focus-within:border-[var(--accent-text)]">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={bloom[lv]}
+                        aria-label={`${teks.komponen.bloom.tingkat[lv]} (%)`}
+                        onChange={(e) =>
+                          setBloom((prev) => ({
+                            ...prev,
+                            [lv]: Math.max(0, parseInt(e.target.value) || 0),
+                          }))
+                        }
+                        className="w-full min-w-0 bg-transparent text-right font-mono text-sm tabular-nums text-[var(--ink)] focus:outline-none"
+                      />
+                      <span aria-hidden="true" className="ml-1 font-mono text-xs text-[var(--ink-muted)]">%</span>
+                    </span>
                   </label>
                 ))}
               </div>

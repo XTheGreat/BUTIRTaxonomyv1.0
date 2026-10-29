@@ -46,6 +46,8 @@ const auth = {
     email: "Email",
     emailContoh: "nama@kampus.ac.id",
     kataSandi: "Kata sandi",
+    tampilkanKataSandi: "Tampilkan kata sandi",
+    sembunyikanKataSandi: "Sembunyikan kata sandi",
     memverifikasi: "Memverifikasi...",
     masuk: "Masuk",
     masukDenganKode: "Masuk dengan kode email",

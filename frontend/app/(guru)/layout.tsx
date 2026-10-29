@@ -8,6 +8,8 @@ import Topbar from "@/components/layout/Topbar";
 import { PengaturanProvider } from "@/components/pengaturan/PengaturanProvider";
 import { useTeks } from "@/lib/teks";
 
+const KUNCI_STATUS_SIDEBAR = "butir_sidebar_terbuka";
+
 export default function GuruLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const t = useTeks();
@@ -18,9 +20,30 @@ export default function GuruLayout({ children }: { children: React.ReactNode }) 
     if (!isLoggedIn()) {
       router.push("/login");
     } else {
+      try {
+        const tersimpan = localStorage.getItem(KUNCI_STATUS_SIDEBAR);
+        setSidebarOpen(
+          tersimpan === null
+            ? !window.matchMedia("(max-width: 767px)").matches
+            : tersimpan === "true",
+        );
+      } catch {
+        setSidebarOpen(!window.matchMedia("(max-width: 767px)").matches);
+      }
       setReady(true);
     }
   }, [router]);
+
+  function aturStatusSidebar(terbuka: boolean) {
+    setSidebarOpen(terbuka);
+    try {
+      localStorage.setItem(KUNCI_STATUS_SIDEBAR, String(terbuka));
+    } catch {}
+  }
+
+  function toggleSidebar() {
+    aturStatusSidebar(!sidebarOpen);
+  }
 
   // Menandai area guru agar skala ukuran teks (Pengaturan > Tampilan) hanya berlaku di sini.
   useEffect(() => {
@@ -56,13 +79,13 @@ export default function GuruLayout({ children }: { children: React.ReactNode }) 
       <div className="flex min-h-dvh bg-[var(--canvas)] text-[var(--ink)]">
         <Sidebar
           isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          onToggle={() => setSidebarOpen((prev) => !prev)}
+          onClose={() => aturStatusSidebar(false)}
+          onToggle={toggleSidebar}
         />
         <div className="flex-1 flex flex-col min-w-0 overflow-x-clip">
           <Topbar
             isSidebarOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+            onToggleSidebar={toggleSidebar}
           />
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto min-w-0">
             {children}
