@@ -237,14 +237,15 @@ async def daftar_peserta(
     await _ujian_milik_guru(db, ujian_id, guru)
 
     statistik = {
-        nama: (total, int(terjawab or 0), int(terkumpul or 0))
-        for nama, total, terjawab, terkumpul in (
+        nama: (total, int(terjawab or 0), int(terkumpul or 0), int(benar or 0))
+        for nama, total, terjawab, terkumpul, benar in (
             await db.execute(
                 select(
                     JawabanSiswa.nama_siswa,
                     func.count(JawabanSiswa.id),
                     func.sum(case((JawabanSiswa.jawaban_pilihan.is_not(None), 1), else_=0)),
                     func.sum(case((JawabanSiswa.submitted_at.is_not(None), 1), else_=0)),
+                    func.sum(case((JawabanSiswa.benar.is_(True), 1), else_=0)),
                 )
                 .where(JawabanSiswa.paket_ujian_id == ujian_id)
                 .group_by(JawabanSiswa.nama_siswa)
@@ -262,18 +263,24 @@ async def daftar_peserta(
     hasil = []
     terdaftar = set()
     for p in peserta:
-        total, terjawab, terkumpul = statistik.get(p.nama_siswa, (0, 0, 0))
+        total, terjawab, terkumpul, benar = statistik.get(p.nama_siswa, (0, 0, 0, 0))
+        sudah_dikumpulkan = total > 0 and terkumpul == total
         terdaftar.add(p.nama_siswa)
         hasil.append({
             "id": str(p.id), "nama_siswa": p.nama_siswa, "masuk_pada": p.masuk_pada,
-            "total_soal": total, "terjawab": terjawab, "terkumpul": total > 0 and terkumpul == total,
+            "total_soal": total, "terjawab": terjawab, "terkumpul": sudah_dikumpulkan,
+            "total_benar": benar if sudah_dikumpulkan else None,
+            "nilai": round(benar / total * 100, 2) if sudah_dikumpulkan else None,
             "sesi_aktif": p.token_hash is not None, "lama": False,
         })
-    for nama, (total, terjawab, terkumpul) in sorted(statistik.items()):
+    for nama, (total, terjawab, terkumpul, benar) in sorted(statistik.items()):
         if nama not in terdaftar:
+            sudah_dikumpulkan = total > 0 and terkumpul == total
             hasil.append({
                 "id": None, "nama_siswa": nama, "masuk_pada": None, "total_soal": total,
-                "terjawab": terjawab, "terkumpul": total > 0 and terkumpul == total,
+                "terjawab": terjawab, "terkumpul": sudah_dikumpulkan,
+                "total_benar": benar if sudah_dikumpulkan else None,
+                "nilai": round(benar / total * 100, 2) if sudah_dikumpulkan else None,
                 "sesi_aktif": False, "lama": True,
             })
     return hasil

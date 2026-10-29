@@ -138,6 +138,8 @@ export interface PesertaUjian {
   total_soal: number;
   terjawab: number;
   terkumpul: boolean;
+  total_benar: number | null;
+  nilai: number | null;
   sesi_aktif: boolean;
   lama: boolean;
 }

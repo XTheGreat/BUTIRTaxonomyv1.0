@@ -10,6 +10,9 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Input from "@/components/ui/Input";
 import { useTeks } from "@/lib/teks";
+import { susunNomorHalaman } from "@/lib/pagination";
+
+const PESERTA_PER_HALAMAN = 10;
 
 function untukInputWaktu(d: Date) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -34,6 +37,7 @@ export default function UjianDetailPage({
   const [mengekspor, setMengekspor] = useState<"pdf" | "docx" | null>(null);
   const [peserta, setPeserta] = useState<PesertaUjian[]>([]);
   const [pesertaLoading, setPesertaLoading] = useState(false);
+  const [halamanPeserta, setHalamanPeserta] = useState(1);
   const [rilisHasil, setRilisHasil] = useState<"otomatis" | "manual">("otomatis");
   const [rilisLoading, setRilisLoading] = useState(false);
   const [waktuMulai, setWaktuMulai] = useState(() => untukInputWaktu(new Date()));
@@ -45,11 +49,12 @@ export default function UjianDetailPage({
     try {
       const data = await apiFetch(`/api/ujian/${ujianId}`);
       setUjian(data);
-      if (data?.status === "aktif") muatPeserta();
+      muatPeserta();
     } catch {}
   }
 
   useEffect(() => {
+    setHalamanPeserta(1);
     loadUjian();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dimuat ulang hanya saat id ujian berganti
   }, [ujianId]);
@@ -153,6 +158,81 @@ export default function UjianDetailPage({
     setTimeout(() => setCopied(null), 2000);
   }
 
+  const jumlahHalamanPeserta = Math.max(1, Math.ceil(peserta.length / PESERTA_PER_HALAMAN));
+  const halamanPesertaAktif = Math.min(halamanPeserta, jumlahHalamanPeserta);
+  const indeksAwalPeserta = (halamanPesertaAktif - 1) * PESERTA_PER_HALAMAN;
+  const pesertaTerlihat = peserta.slice(indeksAwalPeserta, indeksAwalPeserta + PESERTA_PER_HALAMAN);
+  const nomorHalamanPeserta = susunNomorHalaman(halamanPesertaAktif, jumlahHalamanPeserta);
+
+  function bukaHalamanPeserta(berikut: number) {
+    setHalamanPeserta(berikut);
+    document.getElementById("peserta-ujian")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function navigasiPeserta() {
+    if (jumlahHalamanPeserta <= 1) return null;
+    return (
+      <nav
+        aria-label={t.detail.peserta.navigasiHalaman}
+        className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--line)] py-2.5"
+      >
+        <span className="text-xs text-[var(--ink-muted)] tabular-nums">
+          {t.detail.peserta.rentang(
+            indeksAwalPeserta + 1,
+            indeksAwalPeserta + pesertaTerlihat.length,
+            peserta.length,
+          )}
+        </span>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="!h-7 !w-7 !p-0 shrink-0"
+            aria-label={t.detail.peserta.sebelumnya}
+            disabled={halamanPesertaAktif === 1}
+            onClick={() => bukaHalamanPeserta(halamanPesertaAktif - 1)}
+          >
+            ‹
+          </Button>
+          <div role="group" aria-label={t.detail.peserta.navigasiHalaman} className="flex items-center gap-0.5">
+            {nomorHalamanPeserta.map((nomor, indeks) => typeof nomor === "number" ? (
+              <button
+                key={nomor}
+                type="button"
+                aria-label={t.detail.peserta.halaman(nomor, jumlahHalamanPeserta)}
+                aria-current={nomor === halamanPesertaAktif ? "page" : undefined}
+                onClick={() => bukaHalamanPeserta(nomor)}
+                className={`inline-flex h-7 min-w-6 items-center justify-center border px-1 font-mono text-xs tabular-nums transition-colors duration-[140ms] ${
+                  nomor === halamanPesertaAktif
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                    : "border-[var(--line-strong)] bg-[var(--canvas)] text-[var(--ink-muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                }`}
+              >
+                {nomor}
+              </button>
+            ) : (
+              <span key={`${nomor}-${indeks}`} className="px-1 text-xs text-[var(--ink-muted)]" aria-hidden="true">
+                …
+              </span>
+            ))}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="!h-7 !w-7 !p-0 shrink-0"
+            aria-label={t.detail.peserta.berikutnya}
+            disabled={halamanPesertaAktif === jumlahHalamanPeserta}
+            onClick={() => bukaHalamanPeserta(halamanPesertaAktif + 1)}
+          >
+            ›
+          </Button>
+        </div>
+      </nav>
+    );
+  }
+
   if (!ujian) {
     return (
       <div className="border border-[var(--line)] bg-[var(--surface)] p-8 text-center text-xs text-[var(--ink-muted)] font-mono">
@@ -207,8 +287,8 @@ export default function UjianDetailPage({
         </div>
       )}
 
-      {ujian.status === "aktif" && (
-        <div className="border border-[var(--line)] bg-[var(--canvas)] p-6 mb-6">
+      {(ujian.status === "aktif" || pesertaLoading || peserta.length > 0) && (
+        <div id="peserta-ujian" className="border border-[var(--line)] bg-[var(--canvas)] p-6 mb-6 scroll-mt-4">
           <div className="flex items-baseline justify-between border-b border-[var(--line)] pb-2 mb-4">
             <h2 className="font-serif text-lg font-normal text-[var(--ink)]">{t.detail.peserta.judul}</h2>
             <div className="flex items-center gap-3">
@@ -225,41 +305,78 @@ export default function UjianDetailPage({
               </button>
             </div>
           </div>
+          <p className="mb-3 text-xs leading-relaxed text-[var(--ink-muted)]">
+            {t.detail.peserta.nilaiKeterangan}
+          </p>
           {peserta.length === 0 ? (
-            <p className="text-xs text-[var(--ink-muted)]">{t.detail.peserta.kosong}</p>
+            <p className="text-xs text-[var(--ink-muted)]">
+              {pesertaLoading ? t.detail.peserta.memuat : t.detail.peserta.kosong}
+            </p>
           ) : (
-            <div className="divide-y divide-[var(--line)] text-sm">
-              {peserta.map((p) => (
-                <div key={p.id ?? p.nama_siswa} className="py-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="font-serif text-[var(--ink)]">{p.nama_siswa}</span>
-                    {p.masuk_pada && (
-                      <span className="ml-2 font-mono text-[11px] text-[var(--ink-muted)] tabular-nums">
-                        {t.detail.peserta.masuk(formatWaktu(p.masuk_pada))}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="font-mono tabular-nums text-[var(--ink-muted)]">
-                      {t.detail.peserta.terjawab(p.terjawab, p.total_soal)}
-                    </span>
-                    <span className={p.terkumpul ? "text-[var(--status-diterima)] font-medium" : "text-[var(--status-ditandai)] font-medium"}>
-                      {p.terkumpul ? t.detail.peserta.statusTerkumpul : t.detail.peserta.statusMengerjakan}
-                    </span>
-                    {p.id && !p.terkumpul && (
-                      <button
-                        type="button"
-                        onClick={() => handleLepasSesi(p)}
-                        title={t.detail.peserta.izinkanTitle}
-                        className="text-[var(--ink-muted)] hover:text-[var(--ink)] underline"
-                      >
-                        {t.detail.peserta.izinkanMasukUlang}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <>
+              {navigasiPeserta()}
+              <div className="overflow-x-auto">
+                <table aria-label={t.detail.peserta.judul} className="w-full border-collapse text-left text-sm">
+                  <thead className="border-b border-[var(--line)] bg-[var(--surface)]">
+                    <tr>
+                      <th scope="col" className="w-12 px-3 py-2.5 text-center font-mono text-xs font-medium text-[var(--ink-muted)]">#</th>
+                      <th scope="col" className="min-w-[12rem] px-3 py-2.5 text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.kolomNama}</th>
+                      <th scope="col" className="w-28 px-3 py-2.5 text-right text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.kolomTerjawab}</th>
+                      <th scope="col" className="w-28 px-3 py-2.5 text-right text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.kolomBenar}</th>
+                      <th scope="col" className="w-24 px-3 py-2.5 text-right text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.nilai}</th>
+                      <th scope="col" className="w-32 px-3 py-2.5 text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.kolomStatus}</th>
+                      {ujian.status === "aktif" && <th scope="col" className="w-40 px-3 py-2.5 text-right text-xs font-medium text-[var(--ink-muted)]">{t.detail.peserta.kolomAksi}</th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--line)]">
+                    {pesertaTerlihat.map((p, indeks) => (
+                      <tr key={p.id ?? p.nama_siswa} className="hover:bg-[var(--surface)]/60 transition-colors duration-[140ms]">
+                        <td className="px-3 py-2.5 text-center font-mono text-xs tabular-nums text-[var(--ink-muted)]">
+                          {indeksAwalPeserta + indeks + 1}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-serif text-sm text-[var(--ink)]">{p.nama_siswa}</span>
+                          {p.masuk_pada && (
+                            <span className="mt-0.5 block font-mono text-[10px] text-[var(--ink-muted)] tabular-nums">
+                              {t.detail.peserta.masuk(formatWaktu(p.masuk_pada))}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--ink-muted)]">
+                          {p.terjawab}/{p.total_soal}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--ink-muted)]">
+                          {p.total_benar === null ? "—" : `${p.total_benar}/${p.total_soal}`}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--ink)]">
+                          {p.nilai === null ? "—" : p.nilai.toFixed(1)}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs">
+                          <span className={p.terkumpul ? "font-medium text-[var(--status-diterima)]" : "font-medium text-[var(--status-ditandai)]"}>
+                            {p.terkumpul ? t.detail.peserta.statusTerkumpul : t.detail.peserta.statusMengerjakan}
+                          </span>
+                        </td>
+                        {ujian.status === "aktif" && (
+                          <td className="px-3 py-2.5 text-right text-xs">
+                            {p.id && !p.terkumpul ? (
+                              <button
+                                type="button"
+                                onClick={() => handleLepasSesi(p)}
+                                title={t.detail.peserta.izinkanTitle}
+                                className="text-[var(--ink-muted)] underline hover:text-[var(--ink)]"
+                              >
+                                {t.detail.peserta.izinkanMasukUlang}
+                              </button>
+                            ) : "—"}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {navigasiPeserta()}
+            </>
           )}
         </div>
       )}
