@@ -167,10 +167,14 @@ def rekomendasi_butir(
 
     if total_peserta >= MIN_PESERTA_PENGECOH:
         kunci = next((p for p in pengecoh if p["kunci"]), None)
+        # Hanya satu pengecoh yang dicurigai sebagai kunci sebenarnya: yang paling banyak dipilih
+        # kelompok atas. Tanpa pembatasan ini, kunci yang hampir tak dipilih akan menandai semua
+        # pengecoh yang kebetulan dipilih dua orang di kelompok atas.
+        calon = max((p for p in pengecoh if not p["kunci"]), key=lambda p: (p["atas"], -ord(p["opsi"])), default=None)
         for p in pengecoh:
             if p["kunci"]:
                 continue
-            if kunci is not None and p["atas"] >= 2 and p["atas"] > kunci["atas"]:
+            if p is calon and kunci is not None and p["atas"] >= 2 and p["atas"] > kunci["atas"]:
                 tambah("kunci_dicurigai", p["opsi"])
             elif p["persen"] < BATAS_PENGECOH_TIDAK_BERFUNGSI:
                 tambah("pengecoh_tidak_berfungsi", p["opsi"])

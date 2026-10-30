@@ -123,7 +123,7 @@ const sistem = {
       kelompok: "Kelompok",
       penyedia: "Penyedia",
       model: "Model",
-      fallbackTitle: "Dialihkan karena API key penyedia utama kosong",
+      fallbackTitle: "Dialihkan ke penyedia atau model cadangan (API key utama kosong, atau model utama lambat/gagal)",
     },
     rekap: {
       judul: "Rekap per Penyedia, Model, dan Peran",

@@ -8,7 +8,7 @@ import httpx
 from app.config import get_settings
 from app.database import async_session
 from app.models.log_llm import LogLLM
-from app.services.agents.penyedia import PenyediaTidakTersedia, kunci_bankai, pilih_penyedia
+from app.services.agents.penyedia import PenyediaTidakTersedia, keluarga_model, kunci_bankai, pilih_penyedia
 from app.services.agents.skema import SkemaTidakValid
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,20 @@ MAX_RETRY_AFTER_SEC = 25
 
 _TIDAK_DIULANG = {400, 401, 402, 404, 422}
 _AKUN_DITOLAK = {401, 402, 403}
+
+# Kegagalan yang disebabkan layanan/model (bukan permintaan atau akun): pindah ke model cadangan
+# setelah beberapa kali berturut-turut. Kode 400/404/422 berarti model ini menolak permintaan,
+# jadi langsung dicoba model lain. 401/402/403 itu urusan akun, berpindah model tidak menolong.
+_GAGAL_LAYANAN = {"timeout", "galat_server", "galat_jaringan", "json_tidak_valid", "skema_tidak_valid"}
+_MODEL_MENOLAK = {400, 404, 422}
+
+# Keadaan model selama proses backend berjalan (tidak disimpan di database):
+# model yang baru ditinggalkan dilewati sementara, dan satu butir tetap memakai model yang sama
+# untuk satu peran setelah berpindah supaya debatnya konsisten.
+_model_sakit: dict[tuple[str, str], float] = {}
+_model_butir: dict[tuple, str] = {}
+_keluarga_butir: dict[tuple, str] = {}
+BATAS_CATATAN = 1000
 
 _BASE_URL = {
     "groq": "https://api.groq.com/openai/v1",
@@ -104,6 +118,30 @@ async def _catat(**kolom) -> None:
 BATAS_ATAS_MAX_TOKENS = 24000
 
 
+def _simpan_terbatas(kamus: dict, kunci, nilai) -> None:
+    if len(kamus) >= BATAS_CATATAN:
+        kamus.clear()
+    kamus[kunci] = nilai
+
+
+def _urutan_model(pilihan, peran: str, butir_id) -> list[str]:
+    """Urutan model yang dicoba: yang sudah dipakai butir ini untuk peran itu lebih dulu, lalu
+    model utama dan cadangan. Cadangan yang sekeluarga dengan model kelompok lawan pada butir yang
+    sama dibuang (menjaga independensi debat), dan model yang baru gagal diletakkan di belakang."""
+    kandidat = [pilihan.model, *pilihan.cadangan]
+    lawan = "sekunder" if pilihan.kelompok == "primer" else "primer"
+    keluarga_lawan = _keluarga_butir.get((butir_id, lawan)) if butir_id else None
+    if keluarga_lawan:
+        kandidat = [m for m in kandidat if m == pilihan.model or keluarga_model(m) != keluarga_lawan]
+    aktif = _model_butir.get((butir_id, peran)) if butir_id else None
+    if aktif in kandidat:
+        kandidat.remove(aktif)
+        kandidat.insert(0, aktif)
+    sekarang = time.monotonic()
+    sehat = [m for m in kandidat if _model_sakit.get((pilihan.provider, m), 0.0) <= sekarang]
+    return sehat + [m for m in kandidat if m not in sehat]
+
+
 def _angka(nilai) -> int | None:
     return nilai if isinstance(nilai, int) else None
 
@@ -131,7 +169,7 @@ async def panggil_llm(
         "vpsmurah": settings.VPSMURAH_BASE_URL,
     }.get(provider) or _BASE_URL[provider]
     base_url = base_url.rstrip("/")
-    timeout = 120.0 if provider == "openai" else 90.0
+    timeout = 120.0 if provider == "openai" else float(settings.LLM_TIMEOUT_DETIK)
     payload = {
         "model": model,
         "messages": [
@@ -142,11 +180,18 @@ async def panggil_llm(
         "max_tokens": max_tokens,
     }
     konteks = konteks_llm.get()
+    urutan = _urutan_model(pilihan, peran, konteks.get("butir_id"))
+    model = payload["model"] = urutan[0]
+    ambang = max(1, settings.LLM_GAGAL_SEBELUM_PINDAH)
+    indeks_model = gagal_model = urut_di_model = 0
+    # Batas keras: tiap model sebelumnya paling banyak memakai ambang + 1 percobaan sebelum pindah
+    # (rate limit butuh satu lebih), lalu model terakhir mendapat max_retries + 1.
+    batas_percobaan = max_retries + 1 + (len(urutan) - 1) * (ambang + 1)
 
     terakhir = None
     keys_tried = 0
     percobaan = 0
-    for attempt in range(max_retries + 1):
+    for attempt in range(batas_percobaan):
         percobaan = attempt + 1
         api_key, key_idx, total_keys = _kunci_api(provider, pilihan.kelompok_kunci or pilihan.kelompok)
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -155,7 +200,8 @@ async def panggil_llm(
         usage: dict = {}
         hasil: dict | None = None
         ulangi = True
-        tidur = min(3 + attempt * 2, 10)
+        tidur = min(3 + urut_di_model * 2, 10)
+        terpotong = False
         mulai = time.perf_counter()
 
         try:
@@ -201,6 +247,7 @@ async def panggil_llm(
                 if selesai_karena == "length" and not mentah.strip():
                     dipakai = payload["max_tokens"]
                     payload["max_tokens"] = min(dipakai * 2, BATAS_ATAS_MAX_TOKENS)
+                    terpotong = True
                     raise ValueError(
                         f"Jawaban terpotong: batas {dipakai} token habis sebelum jawaban selesai "
                         f"(terpakai {_angka(usage.get('completion_tokens'))} token)"
@@ -228,7 +275,7 @@ async def panggil_llm(
             kelompok=pilihan.kelompok,
             provider=provider,
             model=model,
-            fallback=pilihan.fallback,
+            fallback=pilihan.fallback or model != pilihan.model,
             percobaan_panggilan=percobaan,
             status=status,
             kode_http=kode,
@@ -240,12 +287,38 @@ async def panggil_llm(
         )
 
         if status == "sukses" and hasil is not None:
+            _model_sakit.pop((provider, model), None)
+            if konteks.get("butir_id"):
+                _simpan_terbatas(_model_butir, (konteks["butir_id"], peran), model)
+                _simpan_terbatas(_keluarga_butir, (konteks["butir_id"], pilihan.kelompok), keluarga_model(model))
             return hasil
 
         terakhir = galat
-        if not ulangi or attempt >= max_retries:
+        if not terpotong:
+            gagal_model += 1
+        pindah = False
+        if indeks_model < len(urutan) - 1:
+            if status == "galat_http" and kode in _MODEL_MENOLAK:
+                pindah = True
+            elif status == "rate_limit":
+                pindah = gagal_model >= ambang + 1
+            elif status in _GAGAL_LAYANAN:
+                pindah = gagal_model >= ambang
+        if pindah:
+            _model_sakit[(provider, model)] = time.monotonic() + settings.LLM_MODEL_SAKIT_DETIK
+            indeks_model += 1
+            logger.warning(
+                "Berpindah model %s:%s -> %s:%s setelah %s kegagalan (%s)",
+                provider, model, provider, urutan[indeks_model], gagal_model, galat,
+            )
+            model = payload["model"] = urutan[indeks_model]
+            gagal_model = urut_di_model = 0
+            continue
+        # urut_di_model = percobaan sebelumnya pada model ini; model terakhir mendapat max_retries + 1.
+        if not ulangi or urut_di_model >= max_retries or attempt >= batas_percobaan - 1:
             break
         logger.warning("Panggilan %s:%s gagal (%s). Mengulang dalam %.0f detik...", provider, model, galat, tidur)
+        urut_di_model += 1
         await asyncio.sleep(tidur)
 
     raise AgentCallFailed(

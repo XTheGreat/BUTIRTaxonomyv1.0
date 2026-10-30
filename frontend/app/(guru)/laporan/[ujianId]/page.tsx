@@ -284,10 +284,10 @@ export default function LaporanPage({
 
                         {delta !== null && Math.abs(delta) > 0 && (
                           <span
-                            className={`inline-block px-1 py-0.2 rounded text-[10px] font-mono tabular-nums border ${
+                            className={`text-[10px] font-mono font-medium tabular-nums ${
                               delta > 0
-                                ? "bg-[var(--status-ditolak-bg)] text-[var(--status-ditolak)] border-[var(--status-ditolak)]/30"
-                                : "bg-[var(--status-diterima-bg)] text-[var(--status-diterima)] border-[var(--status-diterima)]/30"
+                                ? "text-[var(--status-ditolak)]"
+                                : "text-[var(--status-diterima)]"
                             }`}
                           >
                             {delta > 0 ? `+${delta}%` : `${delta}%`}
@@ -442,7 +442,7 @@ export default function LaporanPage({
         </div>
 
         <div className="border border-[var(--line)] bg-[var(--surface)] p-4 text-xs text-[var(--ink-muted)] max-w-lg space-y-1">
-          <div className="font-mono text-[11px] uppercase tracking-wider text-[var(--ink)] font-semibold">
+          <div className="font-mono text-[11px] text-[var(--ink)] font-semibold">
             {t.laporan.pedomanJudul}
           </div>
           <div className="font-mono text-[11px]">

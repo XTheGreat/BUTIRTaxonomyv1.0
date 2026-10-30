@@ -1096,7 +1096,7 @@ const zh: Parsial<Kamus> = {
         kelompok: "分组",
         penyedia: "服务商",
         model: "模型",
-        fallbackTitle: "主服务商的 API 密钥为空，已切换服务商",
+        fallbackTitle: "已切换到备用服务商或模型（主 API 密钥为空，或主模型缓慢/失败）",
       },
       rekap: {
         judul: "按服务商、模型和角色汇总",
@@ -1802,7 +1802,7 @@ const zh: Parsial<Kamus> = {
         kunci: "答案",
         tidakMenjawab: (n) => `${n} 人未回答此题。`,
         pengecohButuh: (n, min) => `干扰项分析和信度至少需要 ${min} 名参与者（目前仅 ${n} 名）。下方分布仅供参考。`,
-        kelompokKet: "高分组/低分组 = 总分最高/最低的 27% 参与者。",
+        kelompokKet: "高分组/低分组 = 在其他题目（不含本题）上得分最高/最低的 27% 参与者。",
         temuanJudul: "发现",
         tanpaTemuan: "无发现：在此数据上该题表现良好。",
       },

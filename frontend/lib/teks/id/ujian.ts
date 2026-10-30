@@ -259,7 +259,8 @@ const ujian = {
       tidakMenjawab: (n: number) => `${n} peserta tidak menjawab butir ini.`,
       pengecohButuh: (n: number, min: number) =>
         `Temuan pengecoh dan reliabilitas butuh minimal ${min} peserta (baru ${n}). Sebaran di bawah masih indikatif.`,
-      kelompokKet: "Kelompok atas/bawah = 27% peserta berskor total tertinggi/terendah.",
+      kelompokKet:
+        "Kelompok atas/bawah = 27% peserta dengan skor tertinggi/terendah pada butir lain (tanpa butir ini).",
       temuanJudul: "Temuan",
       tanpaTemuan: "Tidak ada temuan: butir tampak berfungsi baik pada data ini.",
     },

@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     BANKAI_MODEL_KRITIKUS: str = "glm-5.3-flashx-mod"
     BANKAI_MODEL_PENJAWAB_BUTA: str = "glm-5.3-flashx-mod"
     BANKAI_MODEL_ARBITER: str = "deepseek-v4-flash"
+    BANKAI_MODEL_PENYUSUN_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
+    BANKAI_MODEL_KRITIKUS_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
+    BANKAI_MODEL_PENJAWAB_BUTA_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
+    BANKAI_MODEL_ARBITER_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
 
     VPSMURAH_API_KEY: str = ""
     VPSMURAH_BASE_URL: str = "https://my.vpsmurah.co.id/api/v1"
@@ -43,6 +47,14 @@ class Settings(BaseSettings):
     ADVANCE_MODEL_KRITIKUS: str = "glm-5.3-flashx-mod"
     ADVANCE_MODEL_PENJAWAB_BUTA: str = "glm-5.3-flashx-mod"
     ADVANCE_MODEL_ARBITER: str = "deepseek-v4-pro"
+    # Model cadangan per peran (dipisah koma), dicoba berurutan di penyedia yang SAMA bila model
+    # utama lambat atau gagal. Kelompok sekunder cadangannya sekeluarga lalu keluarga lain, kelompok
+    # primer sebaliknya, agar Penyusun/Arbiter dan Kritikus/Penjawab Buta tidak jatuh ke keluarga
+    # model yang sama. Kosongkan untuk mematikan perpindahan model di penyedia itu.
+    ADVANCE_MODEL_PENYUSUN_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
+    ADVANCE_MODEL_KRITIKUS_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
+    ADVANCE_MODEL_PENJAWAB_BUTA_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
+    ADVANCE_MODEL_ARBITER_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
 
     OPENAI_API_KEY_1: str = ""
     OPENAI_API_KEY_2: str = ""
@@ -73,6 +85,12 @@ class Settings(BaseSettings):
     KODE_MASUK_JEDA_DETIK: int = 45
     KODE_MASUK_MAKS_PER_JAM: int = 5
     KODE_MASUK_MAKS_SALAH: int = 5
+
+    # Pindah ke model cadangan setelah sekian kegagalan berturut-turut (timeout, 5xx, jaringan, JSON
+    # tidak valid) pada satu model; model yang ditinggalkan dilewati selama LLM_MODEL_SAKIT_DETIK.
+    LLM_TIMEOUT_DETIK: int = 90
+    LLM_GAGAL_SEBELUM_PINDAH: int = 2
+    LLM_MODEL_SAKIT_DETIK: int = 300
 
     PROVIDER_PRIMER: str = "groq"
     PROVIDER_SEKUNDER: str = "sambanova"

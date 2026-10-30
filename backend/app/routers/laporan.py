@@ -73,7 +73,6 @@ async def get_laporan(
     skor_total_per_siswa = list(siswa_scores.items())
     total_peserta = len(skor_total_per_siswa)
     daya_beda_dihitung = total_peserta >= MIN_PESERTA_DAYA_BEDA
-    atas, bawah = bagi_kelompok(skor_total_per_siswa) if daya_beda_dihitung else ([], [])
 
     analisis_butir = []
     proporsi_benar: list[float] = []
@@ -87,7 +86,16 @@ async def get_laporan(
         tingkat_kesukaran = hitung_tingkat_kesukaran(jawaban_benar, total_peserta)
         proporsi_benar.append(tingkat_kesukaran)
 
-        daya_beda = daya_beda_kelompok(atas, bawah, {j.nama_siswa: bool(j.benar) for j in butir_jawaban})
+        benar_per_siswa = {j.nama_siswa: bool(j.benar) for j in butir_jawaban}
+        # Kelompok atas/bawah ditentukan dari skor tanpa butir ini. Bila skor total dipakai, butir
+        # itu ikut menentukan siapa yang "pintar" sehingga daya bedanya tampak lebih tinggi dari
+        # sebenarnya (terutama pada ujian dengan butir sedikit).
+        atas, bawah = (
+            bagi_kelompok([(nama, skor - (1 if benar_per_siswa.get(nama) else 0)) for nama, skor in skor_total_per_siswa])
+            if daya_beda_dihitung
+            else ([], [])
+        )
+        daya_beda = daya_beda_kelompok(atas, bawah, benar_per_siswa)
         pengecoh, tidak_menjawab = analisis_pengecoh(
             sorted((butir.pilihan or {}).keys()),
             butir.kunci_jawaban,

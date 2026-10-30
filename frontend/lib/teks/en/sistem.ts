@@ -125,7 +125,7 @@ const sistem: typeof sistemId = {
       kelompok: "Group",
       penyedia: "Provider",
       model: "Model",
-      fallbackTitle: "Switched because the primary provider's API key is empty",
+      fallbackTitle: "Switched to a backup provider or model (primary API key empty, or primary model slow/failing)",
     },
     rekap: {
       judul: "Summary by Provider, Model, and Role",

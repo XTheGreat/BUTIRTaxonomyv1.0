@@ -261,7 +261,8 @@ const ujian: typeof id = {
       tidakMenjawab: (n: number) => `${n} ${n === 1 ? "participant" : "participants"} did not answer this item.`,
       pengecohButuh: (n: number, min: number) =>
         `Distractor findings and reliability need at least ${min} participants (only ${n} so far). The distribution below is indicative.`,
-      kelompokKet: "Upper/lower group = the 27% of participants with the highest/lowest total scores.",
+      kelompokKet:
+        "Upper/lower group = the 27% of participants with the highest/lowest scores on the other items (excluding this one).",
       temuanJudul: "Findings",
       tanpaTemuan: "No findings: the item appears to work well on this data.",
     },
