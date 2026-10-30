@@ -77,7 +77,12 @@ class Settings(BaseSettings):
     PROVIDER_PRIMER: str = "groq"
     PROVIDER_SEKUNDER: str = "sambanova"
     STRICT_DUA_PENYEDIA: bool = False
+    # Boleh beberapa alamat dipisah koma; yang pertama dipakai untuk tautan di surel.
     FRONTEND_URL: str = "http://localhost:3000"
+
+    @property
+    def frontend_urls(self) -> list[str]:
+        return [u.strip().rstrip("/") for u in self.FRONTEND_URL.split(",") if u.strip()]
     ADMIN_EMAILS: str = ""
 
     KUOTA_AKTIF: bool = False

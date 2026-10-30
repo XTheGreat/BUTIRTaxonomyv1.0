@@ -53,7 +53,7 @@ async def _jalankan():
                 await db.commit()
                 kisi_id = kk.id
 
-            for status, verdict in (("ditandai", "revisi"), ("ditolak", "ditolak"), ("tertunda", "revisi"), ("debating", "revisi")):
+            for status, verdict in (("ditandai", "revisi"), ("tertunda", "revisi"), ("debating", "revisi")):
                 bid = await _butir(kisi_id, status, verdict, 2)
                 r = await c.post("/api/arsip", json={"butir_id": str(bid), "ronde": 1}, headers=hdr)
                 assert r.status_code == 409, (status, r.text)
@@ -89,6 +89,14 @@ async def _jalankan():
 
             r = await c.delete(f"/api/arsip/{a['id']}", headers=hdr)
             assert r.status_code == 409, "arsip yang dipakai ujian tidak bisa dihapus"
+
+            ditolak = await _butir(kisi_id, "ditolak", "ditolak", 2)
+            assert [b["id"] for b in (await c.get("/api/butir/ditolak", headers=hdr)).json()] == [str(ditolak)]
+            r = await c.post("/api/arsip", json={"butir_id": str(ditolak), "ronde": 1}, headers=hdr)
+            assert r.status_code == 201, r.text
+            assert r.json()["asal_status"] == "ditolak"
+            r = await c.post("/api/arsip", json={"butir_id": str(ditolak), "ronde": 1}, headers=hdr)
+            assert r.status_code == 409, "arsip dari butir ditolak tidak boleh dobel"
     finally:
         await engine.dispose()
 

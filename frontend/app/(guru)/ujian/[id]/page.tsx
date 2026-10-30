@@ -346,10 +346,10 @@ export default function UjianDetailPage({
                           {p.terjawab}/{p.total_soal}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--ink-muted)]">
-                          {p.total_benar === null ? "—" : `${p.total_benar}/${p.total_soal}`}
+                          {p.total_benar == null ? "—" : `${p.total_benar}/${p.total_soal}`}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--ink)]">
-                          {p.nilai === null ? "—" : p.nilai.toFixed(1)}
+                          {p.nilai == null ? "—" : p.nilai.toFixed(1)}
                         </td>
                         <td className="px-3 py-2.5 text-xs">
                           <span className={p.terkumpul ? "font-medium text-[var(--status-diterima)]" : "font-medium text-[var(--status-ditandai)]"}>

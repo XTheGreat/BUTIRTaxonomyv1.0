@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
 
 from app.core.galat import galat_validasi
 from app.core.nama import normalisasi_nama, validasi_nama_pantas
@@ -17,7 +17,7 @@ def periksa_kekuatan_password(password: str) -> str:
 
 
 class UserRegister(BaseModel):
-    nama: str = Field(max_length=255)
+    nama: str
     email: EmailStr
     password: str
 
@@ -113,7 +113,7 @@ class KodeMinta(BaseModel):
 class KodeVerifikasi(BaseModel):
     email: EmailStr
     kode: str
-    nama: str | None = Field(default=None, max_length=255)
+    nama: str | None = None
 
     @field_validator("nama")
     @classmethod
@@ -123,6 +123,8 @@ class KodeVerifikasi(BaseModel):
         v = normalisasi_nama(v)
         if not v:
             return None
+        if len(v) > 255:
+            raise galat_validasi("validasi_nama_panjang", "Nama terlalu panjang (maksimal 255 karakter)")
         return validasi_nama_pantas(v)
 
 

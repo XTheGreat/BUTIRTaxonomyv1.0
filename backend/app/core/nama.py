@@ -29,7 +29,6 @@ _KATA_TIDAK_PANTAS = {
     "ngentot",
     "ngentod",
     "pepek",
-    "perek",
     "lonte",
     "goblok",
     "tolol",
@@ -39,7 +38,6 @@ _KATA_TIDAK_PANTAS = {
     "fucking",
     "fucked",
     "fck",
-    "fuk",
     "phuck",
     "shit",
     "shits",
@@ -59,16 +57,31 @@ _KATA_TIDAK_PANTAS = {
     "slut",
     "sluts",
     "pussy",
-    "cock",
     "motherfucker",
     "retard",
     "retarded",
     "chink",
     "spic",
-    "kike",
     "faggot",
     "tranny",
 }
+# Kata yang juga nama/marga sah di budaya lain (Fuk, Cock, Perek, Kike) sengaja tidak diblokir.
+
+
+def _ringkas(kata: str) -> str:
+    return re.sub(r"(.)\1+", r"\1", kata)
+
+
+_KATA_RINGKAS = {_ringkas(k) for k in _KATA_TIDAK_PANTAS}
+
+
+def _kata_terlarang(kata: str) -> bool:
+    if _POLA_SLUR_N.fullmatch(kata):
+        return True
+    # Huruf berulang (fuuuck, anjiiing) dan v sebagai pengganti u (fvck) tidak menghindarkan filter.
+    return _ringkas(kata) in _KATA_RINGKAS or _ringkas(kata.replace("v", "u")) in _KATA_RINGKAS
+
+
 _POLA_SLUR_N = re.compile(r"^nig{2,}(?:er|a|ah|let|ers|as)?$")
 _KATA_KASAR_ZH = ("操你妈", "草泥马", "傻逼", "王八蛋", "狗屎", "妈的", "他妈的", "婊子", "鸡巴")
 
@@ -97,7 +110,7 @@ def nama_tidak_pantas(nama: str) -> bool:
 
     bagian = re.findall(r"[^\s]+", teks)
     kata = [_normalisasi_kata(b) for b in bagian]
-    if any(w in _KATA_TIDAK_PANTAS or _POLA_SLUR_N.fullmatch(w) for w in kata if w):
+    if any(_kata_terlarang(w) for w in kata if w):
         return True
 
     # Tangkap kata kasar yang ditulis dengan spasi di antara setiap huruf.
@@ -109,7 +122,7 @@ def nama_tidak_pantas(nama: str) -> bool:
             if len(bagian_kata) != 1:
                 break
             rangkaian += bagian_kata
-            if rangkaian in _KATA_TIDAK_PANTAS or _POLA_SLUR_N.fullmatch(rangkaian):
+            if _kata_terlarang(rangkaian):
                 return True
 
     # Variasi sensor seperti f**k juga tidak boleh lolos.

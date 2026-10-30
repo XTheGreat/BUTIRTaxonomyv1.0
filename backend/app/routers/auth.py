@@ -157,7 +157,7 @@ async def forgot_password(
             {"sub": str(user.id), "type": "reset", "ph": sidik_password(user.password_hash)},
             expire_minutes=settings.RESET_TOKEN_EXPIRE_MINUTES,
         )
-        tautan = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+        tautan = f"{settings.frontend_urls[0]}/reset-password?token={token}"
         background_tasks.add_task(
             kirim_email_reset, user.email, tautan, settings.RESET_TOKEN_EXPIRE_MINUTES
         )

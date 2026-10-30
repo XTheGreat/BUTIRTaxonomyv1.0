@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
@@ -10,8 +10,13 @@ import { useTeks } from "@/lib/teks";
 
 const KUNCI_STATUS_SIDEBAR = "butir_sidebar_terbuka";
 
+function layarKecil() {
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
 export default function GuruLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTeks();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,22 +25,28 @@ export default function GuruLayout({ children }: { children: React.ReactNode }) 
     if (!isLoggedIn()) {
       router.push("/login");
     } else {
-      try {
-        const tersimpan = localStorage.getItem(KUNCI_STATUS_SIDEBAR);
-        setSidebarOpen(
-          tersimpan === null
-            ? !window.matchMedia("(max-width: 767px)").matches
-            : tersimpan === "true",
-        );
-      } catch {
-        setSidebarOpen(!window.matchMedia("(max-width: 767px)").matches);
+      // Di layar kecil sidebar berupa drawer: selalu mulai tertutup dan tidak memakai preferensi desktop.
+      if (layarKecil()) {
+        setSidebarOpen(false);
+      } else {
+        try {
+          setSidebarOpen(localStorage.getItem(KUNCI_STATUS_SIDEBAR) !== "false");
+        } catch {
+          setSidebarOpen(true);
+        }
       }
       setReady(true);
     }
   }, [router]);
 
+  // Drawer mobile menutup setelah berpindah halaman.
+  useEffect(() => {
+    if (layarKecil()) setSidebarOpen(false);
+  }, [pathname]);
+
   function aturStatusSidebar(terbuka: boolean) {
     setSidebarOpen(terbuka);
+    if (layarKecil()) return;
     try {
       localStorage.setItem(KUNCI_STATUS_SIDEBAR, String(terbuka));
     } catch {}
