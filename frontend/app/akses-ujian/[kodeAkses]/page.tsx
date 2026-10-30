@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
-import { ambilToken, headerPeserta, simpanToken } from "@/lib/peserta";
+import { ApiError, apiFetch } from "@/lib/api";
+import {
+  ambilToken,
+  bacaAntrian,
+  bacaSesi,
+  hapusAntrian,
+  hapusSesi,
+  headerPeserta,
+  keluarkanDariAntrian,
+  simpanSesi,
+  simpanToken,
+  tambahKeAntrian,
+} from "@/lib/peserta";
 import PemilihBahasa from "@/components/layout/PemilihBahasa";
 import { SoalUjian } from "@/lib/types";
 import Button from "@/components/ui/Button";
@@ -34,65 +45,167 @@ export default function UjianSiswaPage({
   const [submitted, setSubmitted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [galatSimpan, setGalatSimpan] = useState("");
+  const [belumTerkirim, setBelumTerkirim] = useState(0);
+  const [memulihkan, setMemulihkan] = useState(true);
+  const kirimRef = useRef<Promise<number> | null>(null);
 
-  async function handleMasuk(e: React.FormEvent) {
+  // Jawaban dikirim satu per satu dari antrian (nilai terbaru per butir) agar urutan klik tidak
+  // tertukar di server. Kegagalan jaringan/5xx membiarkan jawaban di antrian untuk dicoba lagi;
+  // penolakan 4xx (mis. sudah dikumpulkan) tidak akan pernah berhasil, jadi dibuang dan dilaporkan.
+  const kirimAntrian = useCallback((): Promise<number> => {
+    if (kirimRef.current) return kirimRef.current;
+    const jalankan = async (): Promise<number> => {
+      try {
+        for (;;) {
+          const entri = Object.entries(bacaAntrian(kodeAkses, namaSiswa));
+          if (entri.length === 0) break;
+          for (const [butirId, pilihan] of entri) {
+            try {
+              await apiFetch(
+                `/api/siswa/ujian/${kodeAkses}/jawab?nama_siswa=${encodeURIComponent(namaSiswa)}`,
+                {
+                  method: "POST",
+                  headers: headerPeserta(kodeAkses, namaSiswa),
+                  body: JSON.stringify({ butir_id: butirId, jawaban_pilihan: pilihan }),
+                }
+              );
+              keluarkanDariAntrian(kodeAkses, namaSiswa, butirId, pilihan);
+              setGalatSimpan("");
+            } catch (err: any) {
+              const permanen =
+                err instanceof ApiError &&
+                err.status >= 400 &&
+                err.status < 500 &&
+                err.status !== 408 &&
+                err.status !== 429;
+              if (!permanen) return Object.keys(bacaAntrian(kodeAkses, namaSiswa)).length;
+              keluarkanDariAntrian(kodeAkses, namaSiswa, butirId, pilihan);
+              setGalatSimpan(t.siswa.belumTersimpanDengan(err.message));
+            }
+          }
+        }
+      } finally {
+        setBelumTerkirim(Object.keys(bacaAntrian(kodeAkses, namaSiswa)).length);
+      }
+      return Object.keys(bacaAntrian(kodeAkses, namaSiswa)).length;
+    };
+    // finally pada promise selalu berjalan setelah baris berikut, jadi penanda tidak bisa tersangkut
+    // walau antrian kosong dan fungsi selesai tanpa menunggu apa pun.
+    const proses = jalankan().finally(() => {
+      kirimRef.current = null;
+    });
+    kirimRef.current = proses;
+    return proses;
+  }, [kodeAkses, namaSiswa, t]);
+
+  const masuk = useCallback(
+    async (namaInput: string, otomatis: boolean, indeksAwal = 0) => {
+      setError("");
+      setLoading(true);
+      try {
+        const res = await apiFetch("/api/siswa/masuk", {
+          method: "POST",
+          body: JSON.stringify({
+            kode_akses: kodeAkses,
+            nama_siswa: namaInput,
+            token: ambilToken(kodeAkses, namaInput),
+          }),
+        });
+        const nama: string = res.nama_siswa;
+        setNamaSiswa(nama);
+        if (res.token_peserta) simpanToken(kodeAkses, nama, res.token_peserta);
+        setJudulUjian(res.judul_ujian);
+        if (res.waktu_selesai) {
+          setWaktuSelesai(new Date(res.waktu_selesai));
+        }
+
+        const soalData = await apiFetch(
+          `/api/siswa/ujian/${kodeAkses}/soal?nama_siswa=${encodeURIComponent(nama)}`,
+          { headers: headerPeserta(kodeAkses, nama) }
+        );
+        if (soalData.sudah_dikumpulkan) {
+          hapusSesi(kodeAkses);
+          hapusAntrian(kodeAkses, nama);
+          router.replace(`/akses-ujian/${kodeAkses}/hasil?nama=${encodeURIComponent(nama)}`);
+          return;
+        }
+        const soal: SoalUjian[] = soalData.soal || [];
+        // Jawaban yang masih mengantre di perangkat lebih baru daripada yang ada di server.
+        const idSoal = new Set(soal.map((s) => s.id));
+        const antrian = Object.fromEntries(
+          Object.entries(bacaAntrian(kodeAkses, nama)).filter(([id]) => idSoal.has(id))
+        );
+        setSoalList(soal);
+        setJawaban({ ...(soalData.jawaban_tersimpan || {}), ...antrian });
+        setBelumTerkirim(Object.keys(antrian).length);
+        setCurrentIdx(Math.min(indeksAwal, Math.max(soal.length - 1, 0)));
+        setStep("ujian");
+      } catch (err: any) {
+        // Gagal jaringan saat memulihkan sesi: sesi dibiarkan agar bisa dicoba lagi.
+        // Penolakan server (ujian berakhir, dll.) menghapusnya.
+        if (otomatis && err instanceof ApiError) hapusSesi(kodeAkses);
+        setError(err instanceof ApiError ? err.message || t.siswa.kodeTidakValid : t.siswa.koneksiGagal);
+      } finally {
+        setLoading(false);
+        setMemulihkan(false);
+      }
+    },
+    [kodeAkses, router, t]
+  );
+
+  // Muat ulang halaman di tengah ujian: masuk kembali otomatis dan lanjut dari butir terakhir.
+  useEffect(() => {
+    const sesi = bacaSesi(kodeAkses);
+    if (!sesi) {
+      setMemulihkan(false);
+      return;
+    }
+    setNamaSiswa(sesi.nama);
+    masuk(sesi.nama, true, sesi.indeks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kodeAkses]);
+
+  function handleMasuk(e: React.FormEvent) {
     e.preventDefault();
     if (!namaSiswa.trim()) {
       setError(t.siswa.isiNama);
       return;
     }
-    setError("");
-    setLoading(true);
-    try {
-      const res = await apiFetch("/api/siswa/masuk", {
-        method: "POST",
-        body: JSON.stringify({
-          kode_akses: kodeAkses,
-          nama_siswa: namaSiswa,
-          token: ambilToken(kodeAkses, namaSiswa),
-        }),
-      });
-      const nama: string = res.nama_siswa;
-      setNamaSiswa(nama);
-      if (res.token_peserta) simpanToken(kodeAkses, nama, res.token_peserta);
-      setJudulUjian(res.judul_ujian);
-      if (res.waktu_selesai) {
-        setWaktuSelesai(new Date(res.waktu_selesai));
-      }
-
-      const soalData = await apiFetch(
-        `/api/siswa/ujian/${kodeAkses}/soal?nama_siswa=${encodeURIComponent(nama)}`,
-        { headers: headerPeserta(kodeAkses, nama) }
-      );
-      setSoalList(soalData.soal || []);
-      setJawaban(soalData.jawaban_tersimpan || {});
-      setStep("ujian");
-    } catch (err: any) {
-      setError(err.message || t.siswa.kodeTidakValid);
-    } finally {
-      setLoading(false);
-    }
+    masuk(namaSiswa, false);
   }
 
-  const handleSubmit = useCallback(async () => {
-    if (submitted) return;
-    setSubmitted(true);
-    setShowConfirmModal(false);
-    try {
-      await apiFetch(
-        `/api/siswa/ujian/${kodeAkses}/submit?nama_siswa=${encodeURIComponent(
-          namaSiswa
-        )}`,
-        { method: "POST", headers: headerPeserta(kodeAkses, namaSiswa) }
-      );
-      router.push(
-        `/akses-ujian/${kodeAkses}/hasil?nama=${encodeURIComponent(namaSiswa)}`
-      );
-    } catch (err: any) {
-      setError(err.message || t.siswa.galatKumpul);
-      setSubmitted(false);
-    }
-  }, [kodeAkses, namaSiswa, submitted, router, t]);
+  const kumpulkan = useCallback(
+    async (otomatis: boolean) => {
+      if (submitted) return;
+      setSubmitted(true);
+      setShowConfirmModal(false);
+      // Kumpulkan manual menunggu jawaban yang tertahan terkirim dulu; saat waktu habis tetap
+      // dikumpulkan karena tidak ada lagi kesempatan menunggu.
+      const sisa = await kirimAntrian();
+      if (sisa > 0 && !otomatis) {
+        setGalatSimpan(t.siswa.masihAdaBelumTerkirim(sisa));
+        setSubmitted(false);
+        return;
+      }
+      try {
+        await apiFetch(
+          `/api/siswa/ujian/${kodeAkses}/submit?nama_siswa=${encodeURIComponent(
+            namaSiswa
+          )}`,
+          { method: "POST", headers: headerPeserta(kodeAkses, namaSiswa) }
+        );
+        hapusSesi(kodeAkses);
+        hapusAntrian(kodeAkses, namaSiswa);
+        router.push(
+          `/akses-ujian/${kodeAkses}/hasil?nama=${encodeURIComponent(namaSiswa)}`
+        );
+      } catch (err: any) {
+        setGalatSimpan(err.message || t.siswa.galatKumpul);
+        setSubmitted(false);
+      }
+    },
+    [kodeAkses, namaSiswa, submitted, router, t, kirimAntrian]
+  );
 
   useEffect(() => {
     if (step !== "ujian" || !waktuSelesai || submitted) return;
@@ -103,32 +216,48 @@ export default function UjianSiswaPage({
       );
       setTimeLeft(remaining);
       if (remaining <= 0) {
-        handleSubmit();
+        kumpulkan(true);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [step, waktuSelesai, submitted, handleSubmit]);
+  }, [step, waktuSelesai, submitted, kumpulkan]);
 
-  async function saveJawaban(butirId: string, pilihan: string) {
+  function saveJawaban(butirId: string, pilihan: string) {
     setJawaban((prev) => ({ ...prev, [butirId]: pilihan }));
-    try {
-      await apiFetch(
-        `/api/siswa/ujian/${kodeAkses}/jawab?nama_siswa=${encodeURIComponent(
-          namaSiswa
-        )}`,
-        {
-          method: "POST",
-          headers: headerPeserta(kodeAkses, namaSiswa),
-          body: JSON.stringify({ butir_id: butirId, jawaban_pilihan: pilihan }),
-        }
-      );
-      setGalatSimpan("");
-    } catch (err: any) {
-      setGalatSimpan(
-        err?.message ? t.siswa.belumTersimpanDengan(err.message) : t.siswa.belumTersimpan
-      );
-    }
+    tambahKeAntrian(kodeAkses, namaSiswa, butirId, pilihan);
+    setBelumTerkirim(Object.keys(bacaAntrian(kodeAkses, namaSiswa)).length);
+    kirimAntrian();
   }
+
+  // Simpan posisi butir agar muat ulang kembali ke butir yang sama.
+  useEffect(() => {
+    if (step === "ujian" && namaSiswa) simpanSesi(kodeAkses, { nama: namaSiswa, indeks: currentIdx });
+  }, [step, kodeAkses, namaSiswa, currentIdx]);
+
+  // Coba kirim ulang jawaban yang tertahan: berkala, saat koneksi kembali, dan saat tab aktif lagi.
+  useEffect(() => {
+    if (step !== "ujian") return;
+    const coba = () => {
+      if (Object.keys(bacaAntrian(kodeAkses, namaSiswa)).length > 0) kirimAntrian();
+    };
+    coba();
+    const interval = setInterval(coba, 5000);
+    window.addEventListener("online", coba);
+    document.addEventListener("visibilitychange", coba);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", coba);
+      document.removeEventListener("visibilitychange", coba);
+    };
+  }, [step, kodeAkses, namaSiswa, kirimAntrian]);
+
+  // Peringatan bawaan peramban bila halaman ditutup saat masih ada jawaban yang belum terkirim.
+  useEffect(() => {
+    if (belumTerkirim === 0) return;
+    const tahan = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", tahan);
+    return () => window.removeEventListener("beforeunload", tahan);
+  }, [belumTerkirim]);
 
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -140,6 +269,19 @@ export default function UjianSiswaPage({
 
   const totalTerjawab = Object.keys(jawaban).filter((k) => jawaban[k]).length;
   const totalBelumDijawab = soalList.length - totalTerjawab;
+
+  if (memulihkan) {
+    return (
+      <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center p-4">
+        <div
+          role="status"
+          className="border border-[var(--line)] bg-[var(--surface)] p-8 text-center text-xs text-[var(--ink-muted)] font-mono"
+        >
+          {t.siswa.memulihkanSesi}
+        </div>
+      </div>
+    );
+  }
 
   if (step === "login") {
     return (
@@ -257,7 +399,15 @@ export default function UjianSiswaPage({
             role="alert"
             className="mb-4 text-xs leading-relaxed text-[var(--status-ditolak)]"
           >
-            {galatSimpan} {t.siswa.pilihUlang}
+            {galatSimpan}
+          </div>
+        )}
+        {belumTerkirim > 0 && (
+          <div
+            role="status"
+            className="mb-4 text-xs leading-relaxed text-[var(--status-ditandai)]"
+          >
+            {t.siswa.menungguKirim(belumTerkirim)}
           </div>
         )}
         
@@ -433,7 +583,7 @@ export default function UjianSiswaPage({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={handleSubmit}
+                onClick={() => kumpulkan(false)}
                 disabled={submitted}
               >
                 {submitted ? t.siswa.konfirmasi.mengirim : t.siswa.konfirmasi.ya}

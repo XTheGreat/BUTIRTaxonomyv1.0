@@ -223,7 +223,63 @@ const ujian = {
       jumlahButir: "Jumlah Butir Soal",
       jumlahButirKet: "Butir naskah aktif dalam instrumen evaluasi",
       perluDitinjau: "Butir Perlu Ditinjau",
-      perluDitinjauKet: "Butir dengan anomali selisih prediksi atau daya beda rendah",
+      perluDitinjauKet: "Butir dengan temuan: kesukaran, daya beda, pengecoh, atau kunci",
+      rataRata: "Rata-rata Skor",
+      rataRataKet: (sd: string) => `Simpangan baku ${sd} butir`,
+      rentang: "Rentang Skor",
+      rentangKet: (median: string) => `Median ${median}`,
+      reliabilitas: "Reliabilitas (KR-20)",
+      reliabilitasKet: "Konsistensi antarbutir; ≥ 0.70 dianggap memadai",
+      reliabilitasTakAda: "Belum bisa dihitung (peserta kurang atau skor seragam)",
+    },
+    kategoriKesukaran: { mudah: "Mudah", sedang: "Sedang", sukar: "Sukar" },
+    kategoriDayaBeda: {
+      sangat_baik: "Sangat baik",
+      baik: "Baik",
+      cukup: "Cukup",
+      lemah: "Lemah",
+      terbalik: "Terbalik",
+    },
+    kategoriReliabilitas: {
+      sangat_tinggi: "Sangat tinggi",
+      tinggi: "Tinggi",
+      cukup: "Cukup",
+      rendah: "Rendah",
+    },
+    detail: {
+      tampilkan: "Detail",
+      sembunyikan: "Tutup",
+      aria: (nomor: number) => `Detail analisis butir nomor ${nomor}`,
+      judulPengecoh: "Sebaran Jawaban per Opsi",
+      kolomOpsi: "Opsi",
+      kolomDipilih: "Dipilih",
+      kolomAtas: "Kelompok atas",
+      kolomBawah: "Kelompok bawah",
+      kunci: "Kunci",
+      tidakMenjawab: (n: number) => `${n} peserta tidak menjawab butir ini.`,
+      pengecohButuh: (n: number, min: number) =>
+        `Temuan pengecoh dan reliabilitas butuh minimal ${min} peserta (baru ${n}). Sebaran di bawah masih indikatif.`,
+      kelompokKet: "Kelompok atas/bawah = 27% peserta berskor total tertinggi/terendah.",
+      temuanJudul: "Temuan",
+      tanpaTemuan: "Tidak ada temuan: butir tampak berfungsi baik pada data ini.",
+    },
+    temuan: {
+      terlalu_mudah: () =>
+        "Terlalu mudah: hampir semua peserta menjawab benar. Pertimbangkan menaikkan tingkat kesulitan atau mengganti butir.",
+      terlalu_sukar: () =>
+        "Terlalu sukar: sangat sedikit peserta yang benar. Periksa apakah kalimat soal ambigu atau materinya belum diajarkan.",
+      daya_beda_lemah: () =>
+        "Daya beda lemah: peserta berkemampuan tinggi dan rendah hampir sama peluang benarnya.",
+      daya_beda_negatif: () =>
+        "Daya beda negatif: peserta berskor rendah lebih sering benar daripada yang berskor tinggi. Periksa kunci dan kalimat soal.",
+      meleset_dari_prediksi: () =>
+        "Tingkat kesukaran aktual meleset jauh (25 poin atau lebih) dari prediksi agen.",
+      kunci_dicurigai: (opsi: string | null) =>
+        `Kunci patut dicurigai: opsi ${opsi} lebih banyak dipilih kelompok atas daripada kunci. Pastikan kuncinya benar.`,
+      pengecoh_tidak_berfungsi: (opsi: string | null) =>
+        `Pengecoh ${opsi} dipilih kurang dari 5% peserta. Ganti dengan pengecoh yang lebih masuk akal.`,
+      pengecoh_menarik_kelompok_atas: (opsi: string | null) =>
+        `Pengecoh ${opsi} lebih menarik bagi kelompok atas daripada bawah. Periksa apakah ada tafsir benar lainnya.`,
     },
     kalibrasi: "Kalibrasi Prediksi vs Aktual",
     butirNaskah: (n: number) => `${n} Butir Naskah`,
@@ -254,8 +310,12 @@ const ujian = {
     kodeTidakValid: "Kode akses tidak valid atau ujian belum aktif.",
     galatKumpul: "Gagal mengumpulkan lembar ujian.",
     belumTersimpanDengan: (pesan: string) => `Jawaban belum tersimpan: ${pesan}`,
-    belumTersimpan: "Jawaban belum tersimpan. Periksa koneksi Anda.",
-    pilihUlang: "Pilih ulang jawabannya setelah koneksi pulih agar tersimpan.",
+    menungguKirim: (n: number) =>
+      `${n} jawaban tersimpan di perangkat ini dan akan dikirim otomatis saat koneksi pulih. Jangan menutup halaman sebelum terkirim.`,
+    masihAdaBelumTerkirim: (n: number) =>
+      `Masih ada ${n} jawaban yang belum terkirim ke server. Tunggu koneksi pulih, lalu kumpulkan lagi.`,
+    memulihkanSesi: "Memulihkan sesi ujian...",
+    koneksiGagal: "Tidak dapat terhubung ke server. Periksa koneksi internet Anda, lalu coba lagi.",
     sisaWaktu: (waktu: string) => `Sisa waktu pengerjaan: ${waktu}`,
     kumpulkan: "Kumpulkan",
     daftarButir: "Daftar Butir Soal",

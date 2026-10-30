@@ -54,11 +54,11 @@ export default function AuthShell({
           <AlurKerjaAnimasi />
         </div>
 
-        <div className="hidden lg:flex items-end my-10 self-center">
+        <div className="hidden lg:flex items-end my-6 self-center">
         <svg
           aria-hidden="true"
           viewBox="180 290 920 960"
-          className="relative w-[256px] xl:w-[272px] h-auto shrink-0"
+          className="relative w-[208px] xl:w-[224px] h-auto shrink-0"
         >
           <defs>
             <linearGradient id="auth-kerucut" x1="0" y1="0" x2="1" y2="0">
@@ -78,7 +78,7 @@ export default function AuthShell({
             <use href="#auth-bentuk-kerucut" fill="url(#auth-kerucut-gelap)" />
           </g>
         </svg>
-          <svg aria-hidden="true" viewBox="0 0 500 500" className="relative w-[250px] xl:w-[270px] h-auto shrink-0 ml-[-92px] xl:ml-[-100px] top-[45px] overflow-visible">
+          <svg aria-hidden="true" viewBox="0 0 500 500" className="relative w-[204px] xl:w-[220px] h-auto shrink-0 ml-[-74px] xl:ml-[-82px] top-[36px] overflow-visible">
             <defs>
               <radialGradient id="auth-bola" cx="0.38" cy="0.32" r="0.72" fx="0.32" fy="0.26">
                 <stop offset="0" stopColor="#D2F6EE" />

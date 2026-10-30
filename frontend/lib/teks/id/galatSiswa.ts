@@ -11,6 +11,7 @@ const galatSiswa = {
     `Nama "${p.nama}" sudah dipakai peserta lain di ujian ini. Bila itu Anda dan berganti perangkat, minta guru mengizinkan masuk ulang. Bila bukan, tambahkan kelas atau nomor absen pada nama Anda.`,
   siswa_ujian_tidak_ditemukan: "Ujian tidak ditemukan",
   siswa_butir_tidak_ada: "Butir tidak ada dalam ujian ini",
+  siswa_pilihan_tidak_valid: "Pilihan jawaban tidak valid untuk butir ini",
   siswa_jawaban_sudah_disubmit: "Jawaban sudah dikumpulkan",
   siswa_jawaban_belum_dikumpulkan: "Jawaban belum dikumpulkan",
   siswa_hasil_belum_dirilis:

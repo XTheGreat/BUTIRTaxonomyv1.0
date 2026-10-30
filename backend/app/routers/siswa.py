@@ -216,8 +216,11 @@ async def get_soal_ujian(
     )
     jawaban_list = jawaban_result.scalars().all()
     jawaban_map = {str(j.butir_id): j.jawaban_pilihan for j in jawaban_list}
+    # Dipakai klien untuk memulihkan sesi: siswa yang sudah mengumpulkan langsung diarahkan ke hasil.
+    sudah_dikumpulkan = bool(jawaban_list) and all(j.submitted_at for j in jawaban_list)
 
     return {
+        "sudah_dikumpulkan": sudah_dikumpulkan,
         "paket_ujian_id": str(paket.id),
         "judul": paket.judul,
         "durasi_menit": paket.durasi_menit,
@@ -262,6 +265,12 @@ async def simpan_jawaban(
 
     if jawaban.submitted_at:
         raise Galat(400, "siswa_jawaban_sudah_disubmit", "Jawaban sudah di-submit")
+
+    # Pilihan harus salah satu opsi butir ini; kolomnya hanya satu karakter, jadi nilai asing
+    # (termasuk teks panjang) ditolak sebelum menyentuh database.
+    butir = (await db.execute(select(ButirSoal).where(ButirSoal.id == data.butir_id))).scalar_one_or_none()
+    if not butir or data.jawaban_pilihan not in (butir.pilihan or {}):
+        raise Galat(422, "siswa_pilihan_tidak_valid", "Pilihan jawaban tidak valid untuk butir ini")
 
     jawaban.jawaban_pilihan = data.jawaban_pilihan
     await db.commit()

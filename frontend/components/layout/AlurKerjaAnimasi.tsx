@@ -72,7 +72,7 @@ export default function AlurKerjaAnimasi() {
   const judulPanel = t.auth.alurKerja.judulPanel;
   const frasaCoba = t.auth.alurKerja.frasaCoba;
   const langkah = useMemo(
-    () => t.auth.alurKerja.langkah.map((l, i) => ({ nomor: String(i + 1), ...l })),
+    () => t.auth.alurKerja.langkah.map((l, i) => ({ nomor: ["I", "II", "III"][i] ?? String(i + 1), ...l })),
     [t.auth.alurKerja.langkah],
   );
   const [fase, setFase] = useState<Fase>("alur");
@@ -247,7 +247,12 @@ export default function AlurKerjaAnimasi() {
     tampil ? <span aria-hidden="true" className="kursor-ketik" style={{ height: "0.9em", marginLeft: 1 }} /> : null;
 
   return (
-    <section aria-label={t.auth.alurKerja.labelBagian} className="alur-panel border-t border-[var(--accent)]/20 pt-8">
+    // Tinggi dikunci di layar lebar: tiap fase (alur, rumus, kata) beda tingginya dan rumus
+    // bertambah satu per satu, sehingga tanpa ini ilustrasi kerucut/bola di bawahnya ikut bergeser.
+    <section
+      aria-label={t.auth.alurKerja.labelBagian}
+      className={`alur-panel border-t border-[var(--accent)]/20 pt-8 ${reduksi ? "" : "lg:h-72 lg:overflow-hidden"}`}
+    >
       <div className={reduksi ? "" : "lg:hidden"}>
         <div className="mb-4 h-4 font-sans text-sm font-medium leading-4 text-[var(--accent-text)]">{judulPanel}</div>
         <ol>
@@ -305,11 +310,11 @@ export default function AlurKerjaAnimasi() {
                     {l.nomor}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="h-5 font-sans text-sm font-semibold leading-tight text-[var(--accent-text)]">
+                    <div className="min-h-5 font-sans text-sm font-semibold leading-tight text-[var(--accent-text)]">
                       {judulL[i]}
                       {aktif === i && judulL[i].length < l.judul.length && kursor(isi)}
                     </div>
-                    <span className="mt-1 block h-4 text-xs leading-normal text-[var(--accent-text)]/85">
+                    <span className="mt-1 block min-h-4 text-xs leading-normal text-[var(--accent-text)]/85">
                       {uraianL[i]}
                       {aktif === i && judulL[i].length === l.judul.length && uraianL[i].length < l.uraian.length && kursor(true)}
                     </span>

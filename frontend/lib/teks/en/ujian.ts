@@ -225,7 +225,63 @@ const ujian: typeof id = {
       jumlahButir: "Number of Items",
       jumlahButirKet: "Active items in the assessment instrument",
       perluDitinjau: "Items to Review",
-      perluDitinjauKet: "Items with a prediction gap anomaly or low discrimination",
+      perluDitinjauKet: "Items with findings on difficulty, discrimination, distractors, or the key",
+      rataRata: "Average Score",
+      rataRataKet: (sd: string) => `Standard deviation ${sd} items`,
+      rentang: "Score Range",
+      rentangKet: (median: string) => `Median ${median}`,
+      reliabilitas: "Reliability (KR-20)",
+      reliabilitasKet: "Internal consistency across items; 0.70 or higher is considered adequate",
+      reliabilitasTakAda: "Cannot be computed yet (too few participants or identical scores)",
+    },
+    kategoriKesukaran: { mudah: "Easy", sedang: "Medium", sukar: "Hard" },
+    kategoriDayaBeda: {
+      sangat_baik: "Excellent",
+      baik: "Good",
+      cukup: "Fair",
+      lemah: "Weak",
+      terbalik: "Reversed",
+    },
+    kategoriReliabilitas: {
+      sangat_tinggi: "Very high",
+      tinggi: "High",
+      cukup: "Fair",
+      rendah: "Low",
+    },
+    detail: {
+      tampilkan: "Details",
+      sembunyikan: "Close",
+      aria: (nomor: number) => `Analysis details for item ${nomor}`,
+      judulPengecoh: "Answer Distribution per Option",
+      kolomOpsi: "Option",
+      kolomDipilih: "Chosen",
+      kolomAtas: "Upper group",
+      kolomBawah: "Lower group",
+      kunci: "Key",
+      tidakMenjawab: (n: number) => `${n} ${n === 1 ? "participant" : "participants"} did not answer this item.`,
+      pengecohButuh: (n: number, min: number) =>
+        `Distractor findings and reliability need at least ${min} participants (only ${n} so far). The distribution below is indicative.`,
+      kelompokKet: "Upper/lower group = the 27% of participants with the highest/lowest total scores.",
+      temuanJudul: "Findings",
+      tanpaTemuan: "No findings: the item appears to work well on this data.",
+    },
+    temuan: {
+      terlalu_mudah: () =>
+        "Too easy: almost every participant answered correctly. Consider raising the difficulty or replacing the item.",
+      terlalu_sukar: () =>
+        "Too hard: very few participants answered correctly. Check whether the wording is ambiguous or the topic was not taught.",
+      daya_beda_lemah: () =>
+        "Weak discrimination: high and low performers have almost the same chance of answering correctly.",
+      daya_beda_negatif: () =>
+        "Negative discrimination: low scorers answer correctly more often than high scorers. Check the key and the wording.",
+      meleset_dari_prediksi: () =>
+        "The actual difficulty is far (25 points or more) from the agent's prediction.",
+      kunci_dicurigai: (opsi: string | null) =>
+        `The key is suspect: option ${opsi} was chosen by more of the upper group than the key. Make sure the key is correct.`,
+      pengecoh_tidak_berfungsi: (opsi: string | null) =>
+        `Distractor ${opsi} was chosen by fewer than 5% of participants. Replace it with a more plausible one.`,
+      pengecoh_menarik_kelompok_atas: (opsi: string | null) =>
+        `Distractor ${opsi} attracts the upper group more than the lower group. Check whether another reading could be correct.`,
     },
     kalibrasi: "Predicted vs Actual Calibration",
     butirNaskah: (n: number) => `${n} Exam Items`,
@@ -256,8 +312,12 @@ const ujian: typeof id = {
     kodeTidakValid: "The access code is invalid or the exam is not active yet.",
     galatKumpul: "Failed to submit the exam sheet.",
     belumTersimpanDengan: (pesan: string) => `Answer not saved: ${pesan}`,
-    belumTersimpan: "Answer not saved. Check your connection.",
-    pilihUlang: "Select the answer again once your connection is back so it gets saved.",
+    menungguKirim: (n: number) =>
+      `${n} ${n === 1 ? "answer is" : "answers are"} stored on this device and will be sent automatically once your connection is back. Do not close this page until they are sent.`,
+    masihAdaBelumTerkirim: (n: number) =>
+      `${n} ${n === 1 ? "answer has" : "answers have"} not reached the server yet. Wait for your connection to return, then submit again.`,
+    memulihkanSesi: "Restoring your exam session...",
+    koneksiGagal: "Cannot reach the server. Check your internet connection and try again.",
     sisaWaktu: (waktu: string) => `Time remaining: ${waktu}`,
     kumpulkan: "Submit",
     daftarButir: "Item List",

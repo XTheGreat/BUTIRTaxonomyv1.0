@@ -240,6 +240,22 @@ export interface HasilUjian {
   }[];
 }
 
+export interface PengecohButir {
+  opsi: string;
+  kunci: boolean;
+  dipilih: number;
+  persen: number;
+  atas: number;
+  bawah: number;
+}
+
+export interface TemuanButir {
+  kode: string;
+  opsi: string | null;
+}
+
+// Bidang setelah total_benar dikirim server baru; dibuat opsional agar klien tetap aman
+// bila tersambung ke server lama.
 export interface LaporanButir {
   butir_id: string;
   pertanyaan: string;
@@ -249,6 +265,20 @@ export interface LaporanButir {
   daya_beda: number;
   total_jawab: number;
   total_benar: number;
+  kunci_jawaban?: string;
+  kategori_kesukaran?: "mudah" | "sedang" | "sukar" | null;
+  kategori_daya_beda?: "sangat_baik" | "baik" | "cukup" | "lemah" | "terbalik" | null;
+  tidak_menjawab?: number;
+  pengecoh?: PengecohButir[];
+  rekomendasi?: TemuanButir[];
+}
+
+export interface StatistikSkor {
+  rata_rata: number;
+  simpangan_baku: number;
+  median: number;
+  minimum: number;
+  maksimum: number;
 }
 
 export interface Laporan {
@@ -258,6 +288,13 @@ export interface Laporan {
   daya_beda_dihitung?: boolean;
   daya_beda_indikatif?: boolean;
   min_peserta_bermakna?: number;
+  pengecoh_dianalisis?: boolean;
+  min_peserta_pengecoh?: number;
+  statistik_skor?: StatistikSkor | null;
+  reliabilitas?: {
+    kr20: number | null;
+    kategori: "sangat_tinggi" | "tinggi" | "cukup" | "rendah" | null;
+  };
   analisis_butir: LaporanButir[];
 }
 

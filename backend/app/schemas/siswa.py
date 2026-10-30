@@ -31,7 +31,7 @@ class SiswaMasukResponse(BaseModel):
 
 class JawabanSimpan(BaseModel):
     butir_id: uuid.UUID
-    jawaban_pilihan: str
+    jawaban_pilihan: str = Field(min_length=1, max_length=1)
 
 
 class HasilUjianResponse(BaseModel):

@@ -12,6 +12,7 @@ const galatSiswa: typeof galatSiswaId = {
     `The name "${p.nama}" is already taken by another participant in this exam. If that is you and you switched devices, ask your teacher to let you rejoin. If not, add your class or roll number to your name.`,
   siswa_ujian_tidak_ditemukan: "Exam not found",
   siswa_butir_tidak_ada: "This item is not part of this exam",
+  siswa_pilihan_tidak_valid: "That choice is not valid for this item",
   siswa_jawaban_sudah_disubmit: "Answers have already been submitted",
   siswa_jawaban_belum_dikumpulkan: "Answers have not been submitted yet",
   siswa_hasil_belum_dirilis:

@@ -1,4 +1,5 @@
 import uuid
+from collections import defaultdict
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,11 +10,23 @@ from app.models.butir_soal import ButirSoal
 from app.models.jawaban_siswa import JawabanSiswa
 from app.core.deps import get_current_guru
 from app.core.galat import Galat
-from app.services.analytics import hitung_tingkat_kesukaran, hitung_daya_beda
+from app.services.analytics import (
+    MIN_PESERTA_DAYA_BEDA,
+    MIN_PESERTA_PENGECOH,
+    analisis_pengecoh,
+    bagi_kelompok,
+    daya_beda_kelompok,
+    hitung_kr20,
+    hitung_tingkat_kesukaran,
+    kategori_daya_beda,
+    kategori_kesukaran,
+    kategori_reliabilitas,
+    rekomendasi_butir,
+    statistik_skor,
+)
 
 router = APIRouter(prefix="/api/ujian", tags=["laporan"])
 
-MIN_PESERTA_DAYA_BEDA = 4
 MIN_PESERTA_BERMAKNA = 30
 
 
@@ -35,59 +48,92 @@ async def get_laporan(
         .where(PaketUjianButir.paket_ujian_id == ujian_id)
         .order_by(PaketUjianButir.urutan)
     )
-    paket_butir_list = pb_result.scalars().all()
-    butir_ids = [pb.butir_id for pb in paket_butir_list]
+    butir_ids = [pb.butir_id for pb in pb_result.scalars().all()]
 
-    jawaban_result = await db.execute(
-        select(JawabanSiswa).where(
-            JawabanSiswa.paket_ujian_id == ujian_id,
-            JawabanSiswa.submitted_at.isnot(None),
+    butir_map: dict[uuid.UUID, ButirSoal] = {}
+    all_jawaban: list[JawabanSiswa] = []
+    if butir_ids:
+        butir_result = await db.execute(select(ButirSoal).where(ButirSoal.id.in_(butir_ids)))
+        butir_map = {b.id: b for b in butir_result.scalars().all()}
+        jawaban_result = await db.execute(
+            select(JawabanSiswa).where(
+                JawabanSiswa.paket_ujian_id == ujian_id,
+                JawabanSiswa.butir_id.in_(butir_ids),
+                JawabanSiswa.submitted_at.isnot(None),
+            )
         )
-    )
-    all_jawaban = jawaban_result.scalars().all()
+        all_jawaban = list(jawaban_result.scalars().all())
 
+    jawaban_per_butir: dict[uuid.UUID, list[JawabanSiswa]] = defaultdict(list)
     siswa_scores: dict[str, float] = {}
     for j in all_jawaban:
-        if j.nama_siswa not in siswa_scores:
-            siswa_scores[j.nama_siswa] = 0
-        if j.benar:
-            siswa_scores[j.nama_siswa] += 1
+        jawaban_per_butir[j.butir_id].append(j)
+        siswa_scores[j.nama_siswa] = siswa_scores.get(j.nama_siswa, 0) + (1 if j.benar else 0)
 
-    skor_total_per_siswa = [(nama, skor) for nama, skor in siswa_scores.items()]
+    skor_total_per_siswa = list(siswa_scores.items())
     total_peserta = len(skor_total_per_siswa)
+    daya_beda_dihitung = total_peserta >= MIN_PESERTA_DAYA_BEDA
+    atas, bawah = bagi_kelompok(skor_total_per_siswa) if daya_beda_dihitung else ([], [])
 
     analisis_butir = []
+    proporsi_benar: list[float] = []
     for butir_id in butir_ids:
-        br = await db.execute(select(ButirSoal).where(ButirSoal.id == butir_id))
-        butir = br.scalar_one_or_none()
+        butir = butir_map.get(butir_id)
         if not butir:
             continue
 
-        butir_jawaban = [j for j in all_jawaban if j.butir_id == butir_id]
+        butir_jawaban = jawaban_per_butir.get(butir_id, [])
         jawaban_benar = sum(1 for j in butir_jawaban if j.benar)
-
         tingkat_kesukaran = hitung_tingkat_kesukaran(jawaban_benar, total_peserta)
+        proporsi_benar.append(tingkat_kesukaran)
 
-        jawaban_per_butir = {j.nama_siswa: j.benar for j in butir_jawaban}
-        daya_beda = hitung_daya_beda(skor_total_per_siswa, jawaban_per_butir)
+        daya_beda = daya_beda_kelompok(atas, bawah, {j.nama_siswa: bool(j.benar) for j in butir_jawaban})
+        pengecoh, tidak_menjawab = analisis_pengecoh(
+            sorted((butir.pilihan or {}).keys()),
+            butir.kunci_jawaban,
+            {j.nama_siswa: j.jawaban_pilihan for j in butir_jawaban},
+            atas,
+            bawah,
+        )
 
         analisis_butir.append({
             "butir_id": str(butir_id),
             "pertanyaan": butir.pertanyaan,
             "level_bloom": butir.level_bloom,
+            "kunci_jawaban": butir.kunci_jawaban,
             "prediksi_kesukaran": butir.prediksi_kesukaran,
             "tingkat_kesukaran_aktual": tingkat_kesukaran,
+            "kategori_kesukaran": kategori_kesukaran(tingkat_kesukaran) if total_peserta else None,
             "daya_beda": daya_beda,
+            "kategori_daya_beda": kategori_daya_beda(daya_beda) if daya_beda_dihitung else None,
             "total_jawab": len(butir_jawaban),
             "total_benar": jawaban_benar,
+            "tidak_menjawab": tidak_menjawab,
+            "pengecoh": pengecoh,
+            "rekomendasi": rekomendasi_butir(
+                total_peserta=total_peserta,
+                tingkat_kesukaran=tingkat_kesukaran,
+                daya_beda=daya_beda,
+                prediksi=butir.prediksi_kesukaran,
+                pengecoh=pengecoh,
+            ),
         })
+
+    kr20 = hitung_kr20([s for _, s in skor_total_per_siswa], proporsi_benar) if daya_beda_dihitung else None
 
     return {
         "ujian_id": str(ujian_id),
         "judul": paket.judul,
         "total_peserta": total_peserta,
-        "daya_beda_dihitung": total_peserta >= MIN_PESERTA_DAYA_BEDA,
+        "daya_beda_dihitung": daya_beda_dihitung,
         "daya_beda_indikatif": total_peserta < MIN_PESERTA_BERMAKNA,
         "min_peserta_bermakna": MIN_PESERTA_BERMAKNA,
+        "pengecoh_dianalisis": total_peserta >= MIN_PESERTA_PENGECOH,
+        "min_peserta_pengecoh": MIN_PESERTA_PENGECOH,
+        "statistik_skor": statistik_skor([s for _, s in skor_total_per_siswa]),
+        "reliabilitas": {
+            "kr20": kr20,
+            "kategori": kategori_reliabilitas(kr20) if kr20 is not None else None,
+        },
         "analisis_butir": analisis_butir,
     }
