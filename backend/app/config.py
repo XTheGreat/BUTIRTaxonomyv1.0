@@ -51,10 +51,10 @@ class Settings(BaseSettings):
     # utama lambat atau gagal. Kelompok sekunder cadangannya sekeluarga lalu keluarga lain, kelompok
     # primer sebaliknya, agar Penyusun/Arbiter dan Kritikus/Penjawab Buta tidak jatuh ke keluarga
     # model yang sama. Kosongkan untuk mematikan perpindahan model di penyedia itu.
-    ADVANCE_MODEL_PENYUSUN_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
+    ADVANCE_MODEL_PENYUSUN_CADANGAN: str = "deepseek-v4-pro-0813,mimo-v2.6-pro"
     ADVANCE_MODEL_KRITIKUS_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
     ADVANCE_MODEL_PENJAWAB_BUTA_CADANGAN: str = "glm-5.3-flash,mimo-v2.6-pro"
-    ADVANCE_MODEL_ARBITER_CADANGAN: str = "deepseek-v4-pro-0813,kimi-k2.8"
+    ADVANCE_MODEL_ARBITER_CADANGAN: str = "deepseek-v4-pro-0813,mimo-v2.6-pro"
 
     OPENAI_API_KEY_1: str = ""
     OPENAI_API_KEY_2: str = ""
