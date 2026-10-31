@@ -39,7 +39,8 @@ export default function AuthShell({
                 src="/ButirLogoSidebar.png"
                 width={552}
                 height={109}
-                priority
+                preload
+                fetchPriority="high"
                 sizes="(min-width: 1024px) 360px, 80vw"
                 alt="BUTIR"
                 className="h-auto w-full max-w-[360px]"

@@ -109,7 +109,7 @@ export default function FaktaUnikBerjalan() {
 
   return (
     <div
-      className="relative w-full h-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_48px,black_calc(100%-48px),transparent)] select-none"
+      className="relative w-full h-full overflow-hidden [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent,black_48px,black_calc(100%-48px),transparent)] select-none"
       aria-label={t.shell.faktaBerjalan.labelBagian}
     >
       {/* Render teks fakta murni tanpa border dan tanpa background */}
@@ -121,9 +121,9 @@ export default function FaktaUnikBerjalan() {
             top: `${item.topPercent}%`,
             animation: `jalanKeKiri ${DURASI_TETAP}s linear forwards`,
             animationDelay: `${item.delayAwal}s`,
-            willChange: "left, transform",
+            willChange: "transform",
           }}
-          className="absolute whitespace-nowrap font-serif text-sm sm:text-base text-[var(--ink)] tracking-normal cursor-default transition-colors duration-150 hover:text-[var(--accent-text)] hover:[animation-play-state:paused]"
+          className="absolute left-0 whitespace-nowrap font-serif text-sm sm:text-base text-[var(--ink)] tracking-normal cursor-default transition-colors duration-150 hover:text-[var(--accent-text)] hover:[animation-play-state:paused]"
         >
           {fakta[item.indeksFakta]}
         </p>

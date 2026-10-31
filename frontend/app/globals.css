@@ -314,13 +314,14 @@ h1, h2, h3, h4, h5, h6 {
   .alur-panel { min-height: 224px; overflow: visible; }
 }
 
+/* Hanya transform (berjalan di compositor, tanpa layout ulang tiap frame). Teks berposisi left: 0 di
+   dalam wadah ber-container-type: inline-size; 100cqw = lebar wadah, -100% = lebar teks itu sendiri,
+   jadi teks masuk dari tepi kanan dan keluar sepenuhnya di tepi kiri seperti sebelumnya. */
 @keyframes jalanKeKiri {
   0% {
-    left: 100%;
-    transform: translate3d(0, -50%, 0);
+    transform: translate3d(100cqw, -50%, 0);
   }
   100% {
-    left: 0%;
     transform: translate3d(-100%, -50%, 0);
   }
 }
