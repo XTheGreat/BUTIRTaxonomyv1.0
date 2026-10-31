@@ -13,6 +13,11 @@ import { useTeks } from "@/lib/teks";
 
 const KODE_EMAIL_AKTIF = false;
 
+// Client ID Google tidak rahasia. Bila diisi saat build, halaman Masuk tidak perlu menanyakannya ke
+// backend: satu permintaan lintas-origin (plus preflight) lebih sedikit saat halaman dibuka, dan tidak
+// ada galat jaringan di konsol bila backend sedang mati. String kosong = Google dinonaktifkan.
+const ID_GOOGLE_BUILD = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
 type Langkah = "sandi" | "kode";
 
 const tautan =
@@ -22,7 +27,7 @@ export default function MasukGuru({ emailRef }: { emailRef: React.RefObject<HTML
   const router = useRouter();
   const t = useTeks();
   const m = t.auth.masukGuru;
-  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  const [googleClientId, setGoogleClientId] = useState<string | null>(ID_GOOGLE_BUILD ?? null);
   const [langkah, setLangkah] = useState<Langkah>("sandi");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +38,7 @@ export default function MasukGuru({ emailRef }: { emailRef: React.RefObject<HTML
   const [sibuk, setSibuk] = useState(false);
 
   useEffect(() => {
+    if (ID_GOOGLE_BUILD !== undefined) return;
     apiFetch("/api/auth/metode")
       .then((m) => setGoogleClientId(m.google_client_id || ""))
       .catch(() => setGoogleClientId(""));

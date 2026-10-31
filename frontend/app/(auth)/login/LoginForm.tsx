@@ -90,7 +90,7 @@ export default function LoginForm({ awal }: { awal: Peran }) {
             <div>
               <Link
                 href="/reset-password"
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline"
+                className="inline-block py-1.5 text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline"
               >
                 {l.guru.lupaPassword}
               </Link>

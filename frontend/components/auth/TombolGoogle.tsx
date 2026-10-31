@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { FcGoogle } from "react-icons/fc";
 import { useBahasa, useTeks } from "@/lib/teks";
+
+// Skrip Google (~100 KB) tidak dimuat bersama halaman: sampai ada interaksi pertama, atau setelah
+// jeda ini, yang tampil adalah tombol pengganti yang tampilannya sama.
+const JEDA_MUAT_MS = 10000;
 
 const SKRIP = "https://accounts.google.com/gsi/client";
 
@@ -47,6 +52,8 @@ export default function TombolGoogle({
   const wadah = useRef<HTMLDivElement>(null);
   const callback = useRef(onCredential);
   const gagalRef = useRef(onGagal);
+  const [mulaiMuat, setMulaiMuat] = useState(false);
+  const [siap, setSiap] = useState(false);
 
   useEffect(() => {
     callback.current = onCredential;
@@ -54,6 +61,19 @@ export default function TombolGoogle({
   });
 
   useEffect(() => {
+    if (mulaiMuat) return;
+    const mulai = () => setMulaiMuat(true);
+    const peristiwa = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
+    const timer = window.setTimeout(mulai, JEDA_MUAT_MS);
+    peristiwa.forEach((p) => window.addEventListener(p, mulai, { once: true, passive: true }));
+    return () => {
+      window.clearTimeout(timer);
+      peristiwa.forEach((p) => window.removeEventListener(p, mulai));
+    };
+  }, [mulaiMuat]);
+
+  useEffect(() => {
+    if (!mulaiMuat) return;
     let aktif = true;
     muatSkrip(pesanSkripGagal)
       .then(() => {
@@ -70,12 +90,28 @@ export default function TombolGoogle({
           locale: bahasa,
           width: Math.min(400, Math.max(200, wadah.current.clientWidth || 320)),
         });
+        setSiap(true);
       })
       .catch(() => aktif && gagalRef.current(pesanTidakDapatDimuat));
     return () => {
       aktif = false;
     };
-  }, [clientId, bahasa, pesanSkripGagal, pesanTidakDapatDimuat]);
+  }, [mulaiMuat, clientId, bahasa, pesanSkripGagal, pesanTidakDapatDimuat]);
 
-  return <div ref={wadah} className="flex min-h-[44px] w-full justify-center" />;
+  return (
+    <>
+      {!siap && (
+        <button
+          type="button"
+          onClick={() => setMulaiMuat(true)}
+          aria-busy={mulaiMuat}
+          className="flex w-full items-center justify-center gap-3 rounded border border-[var(--line-strong)] bg-[var(--canvas)] px-3.5 py-2 text-sm font-medium text-[var(--ink)] transition-colors duration-[140ms] hover:border-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-text)]"
+        >
+          <FcGoogle size={20} aria-hidden="true" />
+          {t.auth.masukGuru.lanjutkanGoogle}
+        </button>
+      )}
+      <div ref={wadah} className={siap ? "flex min-h-[44px] w-full justify-center" : "h-0 w-full overflow-hidden"} />
+    </>
+  );
 }

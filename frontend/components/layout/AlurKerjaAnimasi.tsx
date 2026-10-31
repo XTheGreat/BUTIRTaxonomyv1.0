@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import dynamic from "next/dynamic";
+import { pecahToken } from "@/lib/texBertahap";
 import { useTeks } from "@/lib/teks";
+
+// KaTeX (JS + CSS) hanya dibutuhkan animasi rumus di layar lebar, jadi dimuat terpisah dan baru
+// diminta saat animasi mulai berjalan, bukan bersama halaman Masuk.
+const Rumus = dynamic(() => import("./RumusKatex"), { ssr: false });
 
 const PERSAMAAN = [
   String.raw`i\hbar\frac{\partial}{\partial t}\Psi=\left[-\frac{\hbar^{2}}{2m}\nabla^{2}+V\right]\Psi`,
@@ -35,38 +39,6 @@ function acak<T>(daftar: T[], n: number): T[] {
   return salinan.slice(0, n);
 }
 
-function pecahToken(tex: string): string[] {
-  return tex.match(/\\[a-zA-Z]+|\\.|./g) ?? [];
-}
-
-function seimbangkan(potongan: string): string {
-  let buka = 0;
-  let kiri = 0;
-  for (const t of pecahToken(potongan)) {
-    if (t === "{") buka++;
-    else if (t === "}") buka--;
-    else if (t === "\\left") kiri++;
-    else if (t === "\\right") kiri--;
-  }
-  return potongan.replace(/[\^_]\s*$/, "") + "}".repeat(Math.max(buka, 0)) + "\\right.".repeat(Math.max(kiri, 0));
-}
-
-function renderBertahap(token: string[], jumlah: number): string {
-  for (let n = jumlah; n > 0 && n > jumlah - 12; n--) {
-    try {
-      return katex.renderToString(seimbangkan(token.slice(0, n).join("")), { displayMode: true, throwOnError: true });
-    } catch {
-      continue;
-    }
-  }
-  return "";
-}
-
-function Rumus({ tex, jumlah }: { tex: string; jumlah: number }) {
-  const html = renderBertahap(pecahToken(tex), jumlah);
-  return <div className="overflow-hidden [&_.katex-display]:my-0 [&_.katex-display]:overflow-hidden [&_.katex]:text-[1.05em]" dangerouslySetInnerHTML={{ __html: html }} />;
-}
-
 export default function AlurKerjaAnimasi() {
   const t = useTeks();
   const judulPanel = t.auth.alurKerja.judulPanel;
@@ -92,6 +64,7 @@ export default function AlurKerjaAnimasi() {
 
   useEffect(() => {
     const mulai = (): (() => void) => {
+    void import("./RumusKatex");
     let batal = false;
     const timers = new Set<ReturnType<typeof setTimeout>>();
 

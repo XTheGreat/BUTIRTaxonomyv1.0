@@ -28,12 +28,12 @@ function Kolom({ judul, tautan }: { judul: string; tautan: { label: string; href
   return (
     <nav aria-label={judul}>
       <h2 className="inline-block border-b border-white/40 pb-1.5 font-serif text-base font-medium text-white">{judul}</h2>
-      <ul className="mt-4 space-y-3">
+      <ul className="mt-3">
         {tautan.map((t) => (
           <li key={t.href}>
             <Link
               href={t.href}
-              className="font-sans text-sm text-white/80 underline-offset-4 transition-colors duration-[140ms] hover:text-white hover:underline"
+              className="inline-block py-1.5 font-sans text-sm text-white/80 underline-offset-4 transition-colors duration-[140ms] hover:text-white hover:underline"
             >
               {t.label}
             </Link>
@@ -73,10 +73,10 @@ export default function FooterSitus() {
               <dd>{f.jamLayanan}</dd>
             </div>
             {email && (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <dt className="text-white/60">{f.email}</dt>
                 <dd>
-                  <a href={`mailto:${email}`} className="underline-offset-4 hover:text-white hover:underline">{email}</a>
+                  <a href={`mailto:${email}`} className="inline-block py-1.5 underline-offset-4 hover:text-white hover:underline">{email}</a>
                 </dd>
               </div>
             )}
