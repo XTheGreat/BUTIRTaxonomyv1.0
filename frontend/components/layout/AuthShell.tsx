@@ -3,10 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import LatarLabirin from "./LatarLabirin";
 import FooterSitus from "./FooterSitus";
 import AlurKerjaAnimasi from "./AlurKerjaAnimasi";
 import PemilihBahasa from "./PemilihBahasa";
+import LatarPerpustakaan from "./LatarPerpustakaan";
 import { useTeks } from "@/lib/teks";
 
 interface AuthShellProps {
@@ -31,12 +31,12 @@ export default function AuthShell({
     <div className="min-h-screen bg-[var(--canvas)] flex flex-col text-[var(--ink)]">
       <div className="flex min-h-screen flex-col lg:flex-row">
       
-      <div className="lg:w-[480px] xl:w-[540px] shrink-0 order-2 lg:order-1 bg-[var(--canvas)] border-t lg:border-t-0 lg:border-r border-[var(--line-strong)] p-8 lg:p-14 flex flex-col justify-between text-[var(--accent-text)]">
+      <div className="lg:w-[480px] xl:w-[540px] shrink-0 order-2 lg:order-1 bg-[var(--accent)] p-8 lg:p-14 flex flex-col justify-between text-[var(--ink-on-accent)]">
         <div>
           <div className="mb-10">
             <Link href="/" className="inline-block focus-visible:outline-none">
               <Image
-                src="/ButirLogoSidebar.png"
+                src="/ButirLogoPutih.png"
                 width={552}
                 height={109}
                 preload
@@ -48,7 +48,7 @@ export default function AuthShell({
             </Link>
           </div>
 
-          <p className="text-sm text-[var(--accent-text)] leading-relaxed mb-10 max-w-sm">
+          <p className="text-sm text-[var(--ink-on-accent)] leading-relaxed mb-10 max-w-sm">
             {t.auth.shell.deskripsi}
           </p>
 
@@ -114,13 +114,13 @@ export default function AuthShell({
           </svg>
         </div>
 
-        <div className="text-[11px] text-[var(--accent-text)]/80 font-mono pt-8 border-t border-[var(--accent)]/20 mt-8 lg:mt-0">
+        <div className="text-[11px] text-[var(--ink-on-accent)]/80 font-mono pt-8 border-t border-[var(--ink-on-accent)]/25 mt-8 lg:mt-0">
           {t.auth.shell.standar}
         </div>
       </div>
 
-      <div className="relative order-1 lg:order-2 flex-1 flex items-center justify-center overflow-hidden bg-[var(--canvas)] p-6 sm:p-10">
-        <LatarLabirin />
+      <div className="relative order-1 lg:order-2 flex-1 flex items-center justify-center overflow-hidden bg-[color-mix(in_srgb,var(--accent)_18%,var(--canvas))] p-6 sm:p-10">
+        <LatarPerpustakaan />
         <PemilihBahasa className="absolute right-4 top-4 z-10" />
 
         <div className="relative w-full max-w-[420px]">

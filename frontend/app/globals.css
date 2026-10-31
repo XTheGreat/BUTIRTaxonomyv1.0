@@ -268,39 +268,43 @@ h1, h2, h3, h4, h5, h6 {
   transition: background-color 0.35s ease-out, color 0.35s ease-out, opacity 0.35s ease-out, transform 0.35s ease-out, border-color 0.7s ease-out;
 }
 
-/* Panel "Alur Kerja Sistem" di halaman Masuk/Daftar/Lupa password. Warna dipegang variabel --alur-*:
-   keadaan awal berlatar kanvas dengan teks hijau. Setelah animasi mengetik selesai, lapisan .alur-lapisan
-   (salinan isi dengan variabel terbalik: latar hijau BUTIR, semua isi putih) disapukan diagonal dari kiri
-   atas ke kanan bawah. Di layar kecil dan saat gerak dikurangi (data-statis) panel langsung terbalik. */
+/* Panel "Alur Kerja Sistem" di halaman Masuk/Daftar/Lupa password, di atas kolom hijau BUTIR. Warna dipegang
+   variabel --alur-*: keadaan awal transparan dengan teks putih. Setelah animasi mengetik selesai, lapisan
+   .alur-lapisan (salinan isi dengan variabel terbalik: latar putih, semua isi hijau) disapukan diagonal dari
+   kiri atas ke kanan bawah. Di layar kecil dan saat gerak dikurangi (data-statis) panel langsung terbalik. */
 .alur-panel {
   --alur-bg: transparent;
-  --alur-garis: color-mix(in srgb, var(--accent) 20%, transparent);
-  --alur-teks: var(--accent-text);
-  --alur-bulat-bg: var(--accent);
-  --alur-bulat-teks: var(--ink-on-accent);
-  --alur-penghubung: color-mix(in srgb, var(--accent) 40%, transparent);
+  --alur-garis: color-mix(in srgb, var(--ink-on-accent) 25%, transparent);
+  --alur-teks: var(--ink-on-accent);
+  --alur-bulat-bg: var(--ink-on-accent);
+  --alur-bulat-teks: var(--accent);
+  --alur-penghubung: color-mix(in srgb, var(--ink-on-accent) 45%, transparent);
 }
 .alur-panel[data-selesai="true"] {
   --alur-garis: transparent;
 }
 .alur-terbalik,
 .alur-panel[data-statis="true"] {
-  --alur-bg: var(--accent);
+  --alur-bg: var(--ink-on-accent);
   --alur-garis: transparent;
-  --alur-teks: var(--ink-on-accent);
-  --alur-bulat-bg: var(--ink-on-accent);
-  --alur-bulat-teks: var(--accent);
-  --alur-penghubung: color-mix(in srgb, var(--ink-on-accent) 45%, transparent);
+  --alur-teks: var(--accent);
+  --alur-bulat-bg: var(--accent);
+  --alur-bulat-teks: var(--ink-on-accent);
+  --alur-penghubung: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 @media (max-width: 1023.98px) {
   .alur-panel {
-    --alur-bg: var(--accent);
+    --alur-bg: var(--ink-on-accent);
     --alur-garis: transparent;
-    --alur-teks: var(--ink-on-accent);
-    --alur-bulat-bg: var(--ink-on-accent);
-    --alur-bulat-teks: var(--accent);
-    --alur-penghubung: color-mix(in srgb, var(--ink-on-accent) 45%, transparent);
+    --alur-teks: var(--accent);
+    --alur-bulat-bg: var(--accent);
+    --alur-bulat-teks: var(--ink-on-accent);
+    --alur-penghubung: color-mix(in srgb, var(--accent) 40%, transparent);
   }
+}
+/* Kursor ketik mengikuti warna teks panel (di atas latar hijau kursor hijau tidak akan terlihat). */
+.alur-panel .kursor-ketik {
+  background-color: var(--alur-teks);
 }
 
 /* Tepi sapuan lembut 45 derajat: topeng 2,5x ukuran elemen digeser dari pojok kanan bawah (tersembunyi)

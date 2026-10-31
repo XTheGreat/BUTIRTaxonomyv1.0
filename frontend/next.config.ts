@@ -5,8 +5,9 @@ const nextConfig: NextConfig = {
   // tidak menimpa .next yang dipakai `next dev`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
-    // 40 dipakai tekstur latar login (hanya tampil pada opasitas 16%); 75 untuk sisanya.
-    qualities: [40, 75],
+    // AVIF lebih kecil untuk foto latar halaman Masuk; WebP menjadi cadangan.
+    formats: ["image/avif", "image/webp"],
+    qualities: [60, 75],
   },
 };
 
