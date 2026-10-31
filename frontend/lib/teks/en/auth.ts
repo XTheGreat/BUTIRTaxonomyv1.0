@@ -14,7 +14,6 @@ const auth: typeof id = {
       { judul: "Multi-Agent Debate", uraian: "Critical review by four agents (Drafter, Critic, Blind Answerer, Arbiter)." },
       { judul: "Assembly & Evaluation", uraian: "Issue exam access codes and empirically calibrate item discrimination." },
     ],
-    frasaCoba: ["Try it", "or never."],
   },
   login: {
     peran: {

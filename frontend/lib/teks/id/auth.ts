@@ -12,7 +12,6 @@ const auth = {
       { judul: "Debat Multi-Agen", uraian: "Telaah kritis empat agen (Penyusun, Kritikus, Penjawab Buta, Arbiter)." },
       { judul: "Perakitan & Evaluasi", uraian: "Penerbitan kode ujian peserta dan kalibrasi empiris daya beda butir." },
     ],
-    frasaCoba: ["Coba saja", "atau jangan sama sekali."],
   },
   login: {
     peran: {

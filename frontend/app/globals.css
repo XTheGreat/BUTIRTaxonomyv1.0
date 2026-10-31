@@ -264,54 +264,62 @@ h1, h2, h3, h4, h5, h6 {
   .kursor-ketik { display: none; }
 }
 
-.alur-pudar {
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 40%, #000 60%, #000 100%);
-  mask-image: linear-gradient(to right, transparent 0%, transparent 40%, #000 60%, #000 100%);
-  -webkit-mask-size: 300% 100%;
-  mask-size: 300% 100%;
+.alur-bulat {
+  transition: background-color 0.35s ease-out, color 0.35s ease-out, opacity 0.35s ease-out, transform 0.35s ease-out, border-color 0.7s ease-out;
+}
+
+/* Panel "Alur Kerja Sistem" di halaman Masuk/Daftar/Lupa password. Warna dipegang variabel --alur-*:
+   keadaan awal berlatar kanvas dengan teks hijau. Setelah animasi mengetik selesai, lapisan .alur-lapisan
+   (salinan isi dengan variabel terbalik: latar hijau BUTIR, semua isi putih) disapukan diagonal dari kiri
+   atas ke kanan bawah. Di layar kecil dan saat gerak dikurangi (data-statis) panel langsung terbalik. */
+.alur-panel {
+  --alur-bg: transparent;
+  --alur-garis: color-mix(in srgb, var(--accent) 20%, transparent);
+  --alur-teks: var(--accent-text);
+  --alur-bulat-bg: var(--accent);
+  --alur-bulat-teks: var(--ink-on-accent);
+  --alur-penghubung: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.alur-panel[data-selesai="true"] {
+  --alur-garis: transparent;
+}
+.alur-terbalik,
+.alur-panel[data-statis="true"] {
+  --alur-bg: var(--accent);
+  --alur-garis: transparent;
+  --alur-teks: var(--ink-on-accent);
+  --alur-bulat-bg: var(--ink-on-accent);
+  --alur-bulat-teks: var(--accent);
+  --alur-penghubung: color-mix(in srgb, var(--ink-on-accent) 45%, transparent);
+}
+@media (max-width: 1023.98px) {
+  .alur-panel {
+    --alur-bg: var(--accent);
+    --alur-garis: transparent;
+    --alur-teks: var(--ink-on-accent);
+    --alur-bulat-bg: var(--ink-on-accent);
+    --alur-bulat-teks: var(--accent);
+    --alur-penghubung: color-mix(in srgb, var(--ink-on-accent) 45%, transparent);
+  }
+}
+
+/* Tepi sapuan lembut 45 derajat: topeng 2,5x ukuran elemen digeser dari pojok kanan bawah (tersembunyi)
+   ke pojok kiri atas (terlihat penuh), sehingga warna terbalik merambat dari kiri atas ke kanan bawah. */
+.alur-lapisan {
+  -webkit-mask-image: linear-gradient(135deg, #000 0%, #000 40%, transparent 60%, transparent 100%);
+  mask-image: linear-gradient(135deg, #000 0%, #000 40%, transparent 60%, transparent 100%);
+  -webkit-mask-size: 250% 250%;
+  mask-size: 250% 250%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  animation: alur-pudar 1.1s ease-in forwards;
+  animation: alur-sapu 1.4s ease-in-out forwards;
 }
-@keyframes alur-pudar {
-  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
-  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
-}
-
-.alur-muncul {
-  animation: alur-muncul 0.7s ease-out both;
-}
-@keyframes alur-muncul {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.alur-bulat {
-  transition: background-color 0.35s ease-out, color 0.35s ease-out, opacity 0.35s ease-out, transform 0.35s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .alur-pudar, .alur-muncul { animation: none !important; }
-}
-
-.alur-keluar-kiri { animation: alur-keluar-kiri 0.6s ease-in forwards; }
-.alur-keluar-atas { animation: alur-keluar-atas 0.6s ease-in forwards; }
-.alur-keluar-kanan { animation: alur-keluar-kanan 0.6s ease-in forwards; }
-@keyframes alur-keluar-kiri {
-  to { opacity: 0; transform: translateX(-70px); }
-}
-@keyframes alur-keluar-atas {
-  to { opacity: 0; transform: translateY(-40px); }
-}
-@keyframes alur-keluar-kanan {
-  to { opacity: 0; transform: translateX(70px); }
+@keyframes alur-sapu {
+  from { -webkit-mask-position: 100% 100%; mask-position: 100% 100%; }
+  to { -webkit-mask-position: 0% 0%; mask-position: 0% 0%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .alur-keluar-kiri, .alur-keluar-atas, .alur-keluar-kanan { animation: none !important; opacity: 0; }
-}
-
-@media (min-width: 1024px) {
-  .alur-panel { min-height: 224px; overflow: visible; }
+  .alur-lapisan { animation: none; -webkit-mask-image: none; mask-image: none; }
 }
 
 /* Hanya transform (berjalan di compositor, tanpa layout ulang tiap frame). Teks berposisi left: 0 di

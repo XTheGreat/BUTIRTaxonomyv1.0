@@ -450,7 +450,6 @@ const zh: Parsial<Kamus> = {
         { judul: "多智能体辩论", uraian: "由四个智能体（命题者、评审员、盲答者、裁决者）进行批判性审核。" },
         { judul: "组卷与评估", uraian: "发布考试访问码，并通过实际作答校准题目区分度。" },
       ],
-      frasaCoba: ["试试看", "否则就永远不试。"],
     },
     login: {
       peran: { guru: "教师／讲师", siswa: "学生" },
